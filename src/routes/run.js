@@ -65,9 +65,21 @@ export function createRunRouter({ outputRoot, runs }) {
       res.status(404).end();
       return;
     }
+    if (run.status !== 'done') {
+      res.status(409).json({ error: `Run is not finished yet (status: ${run.status})` });
+      return;
+    }
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', `attachment; filename="${req.params.runId}.zip"`);
     const archive = archiver('zip');
+    archive.on('error', (err) => {
+      console.error(`Archive error for run ${req.params.runId}:`, err);
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Failed to create archive' });
+      } else {
+        res.destroy();
+      }
+    });
     archive.pipe(res);
     archive.directory(run.outputDir, false);
     archive.finalize();

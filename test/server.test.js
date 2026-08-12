@@ -40,3 +40,37 @@ test('POST /api/run then GET /api/progress/:runId streams to run-done, manifest 
   assert.equal(downloadRes.status, 200);
   assert.equal(downloadRes.headers.get('content-type'), 'application/zip');
 });
+
+test('GET /api/download/:runId on an in-progress run returns 409, not a crash', async (t) => {
+  const outputRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'server-test-'));
+  const app = createApp({ outputRoot });
+  const server = app.listen(0);
+  const { port } = server.address();
+  const base = `http://127.0.0.1:${port}`;
+
+  t.after(async () => {
+    server.close();
+    await fs.rm(outputRoot, { recursive: true, force: true });
+  });
+
+  const runRes = await fetch(`${base}/api/run`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ localFolder: fixtureDir, mode: 'auto', siteName: 'fixture-site' }),
+  });
+  assert.equal(runRes.status, 200);
+  const { runId } = await runRes.json();
+  assert.ok(runId);
+
+  // Hit download immediately, before the run has finished.
+  const downloadRes = await fetch(`${base}/api/download/${runId}`);
+  assert.equal(downloadRes.status, 409);
+  const body = await downloadRes.json();
+  assert.match(body.error, /not.*finish/i);
+
+  // Server process must still be alive and responsive after the guarded failure.
+  const progressRes = await fetch(`${base}/api/progress/${runId}`);
+  assert.equal(progressRes.status, 200);
+  const text = await progressRes.text();
+  assert.match(text, /run-done/);
+});
