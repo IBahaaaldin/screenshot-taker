@@ -1,0 +1,9 @@
+body { font-family: -apple-system, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; color: #222; }
+label { display: block; margin-bottom: 14px; font-weight: 600; }
+input, select { display: block; width: 100%; padding: 8px; margin-top: 4px; font-weight: normal; box-sizing: border-box; }
+button { padding: 10px 20px; font-weight: 600; cursor: pointer; }
+#progress-log { list-style: none; padding: 0; font-family: monospace; font-size: 13px; }
+#progress-log li { padding: 2px 0; }
+.page-block { margin-bottom: 32px; }
+.section-block { display: flex; gap: 8px; align-items: center; margin: 8px 0; flex-wrap: wrap; }
+.section-block img { max-height: 100px; border: 1px solid #ccc; }

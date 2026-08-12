@@ -11,6 +11,7 @@ export function createApp({ outputRoot = path.join(__dirname, '..', 'output') } 
 
   app.use(express.json());
   app.use('/api', createRunRouter({ outputRoot, runs }));
+  app.use('/output', express.static(outputRoot));
   app.use(express.static(path.join(__dirname, '..', 'public')));
 
   return app;

@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Screenshot Taker</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main>
+    <h1>Screenshot Taker</h1>
+    <form id="run-form">
+      <label>
+        Site name
+        <input type="text" id="siteName" required placeholder="my-restaurant-site" />
+      </label>
+      <label>
+        Source type
+        <select id="sourceType">
+          <option value="url">Live URL / dev server URL</option>
+          <option value="localFolder">Local folder path</option>
+        </select>
+      </label>
+      <label>
+        <span id="sourceLabel">URL</span>
+        <input type="text" id="sourceValue" required placeholder="https://example.com" />
+      </label>
+      <label>
+        Section detection
+        <select id="mode">
+          <option value="auto">Auto-detect</option>
+          <option value="selectors">CSS selector list</option>
+          <option value="full-page">Full page only</option>
+        </select>
+      </label>
+      <label id="selectorsRow" style="display:none;">
+        Selectors (comma-separated)
+        <input type="text" id="selectors" placeholder="#hero, .menu-section" />
+      </label>
+      <button type="submit">Run</button>
+    </form>
+
+    <section id="progress" hidden>
+      <h2>Progress</h2>
+      <ul id="progress-log"></ul>
+    </section>
+
+    <section id="gallery" hidden>
+      <h2>Results</h2>
+      <a id="download-link" href="#">Download all as zip</a>
+      <div id="gallery-content"></div>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
