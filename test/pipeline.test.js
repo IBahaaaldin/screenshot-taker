@@ -91,6 +91,46 @@ test('runPipeline clears stale output from a previous run of the same siteName',
   }
 });
 
+test('runPipeline refuses to operate outside outputRoot even if siteName escapes it', async () => {
+  // This calls runPipeline directly, bypassing the route-level siteName
+  // validation in src/routes/run.js, to prove the pipeline's own containment
+  // check is what actually stops the deletion -- not just the route guard.
+  const parent = await fs.mkdtemp(path.join(os.tmpdir(), 'pipeline-containment-'));
+  const outputRoot = path.join(parent, 'output-root');
+  await fs.mkdir(outputRoot, { recursive: true });
+
+  // A sentinel file sitting next to outputRoot (i.e. in outputRoot's parent),
+  // which is exactly where siteName: '../escape' would resolve to.
+  const sentinel = path.join(parent, 'escape');
+  await fs.mkdir(sentinel, { recursive: true });
+  const sentinelFile = path.join(sentinel, 'must-survive.txt');
+  await fs.writeFile(sentinelFile, 'must survive');
+
+  try {
+    await assert.rejects(
+      () =>
+        runPipeline(
+          {
+            startUrl: 'http://127.0.0.1:1/index.html', // never reached; rm happens first
+            mode: 'auto',
+            selectors: [],
+            siteName: '../escape',
+            outputRoot,
+            maxPages: 10,
+          },
+          () => {}
+        ),
+      /outside outputRoot|outputRoot/i
+    );
+
+    // The sentinel directory/file must still exist -- the pipeline must not
+    // have deleted anything outside outputRoot.
+    assert.ok(await fileExists(sentinelFile), 'sentinel outside outputRoot must survive');
+  } finally {
+    await fs.rm(parent, { recursive: true, force: true });
+  }
+});
+
 async function fileExists(p) {
   try {
     await fs.stat(p);

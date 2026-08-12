@@ -101,6 +101,82 @@ test('POST /api/run rejects a siteName containing path traversal', async (t) => 
   assert.match(body.error, /siteName/i);
 });
 
+test('POST /api/run rejects siteName ".." (would delete outputRoot\'s parent)', async (t) => {
+  const outputRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'server-test-'));
+  const app = createApp({ outputRoot });
+  const server = app.listen(0);
+  const { port } = server.address();
+  const base = `http://127.0.0.1:${port}`;
+
+  // Sentinel file placed in outputRoot's parent directory, one level above
+  // outputRoot. If siteName: '..' were allowed through, runPipeline would
+  // resolve siteOutputDir to outputRoot's parent and recursively delete it,
+  // wiping this sentinel out.
+  const parentDir = path.dirname(outputRoot);
+  const sentinel = path.join(parentDir, `sentinel-${path.basename(outputRoot)}.txt`);
+  await fs.writeFile(sentinel, 'must survive');
+
+  t.after(async () => {
+    await new Promise((resolve) => server.close(resolve));
+    await fs.rm(outputRoot, { recursive: true, force: true });
+    await fs.rm(sentinel, { force: true });
+  });
+
+  const runRes = await fetch(`${base}/api/run`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      localFolder: fixtureDir,
+      mode: 'auto',
+      siteName: '..',
+    }),
+  });
+  assert.equal(runRes.status, 400);
+  const body = await runRes.json();
+  assert.match(body.error, /siteName/i);
+
+  // Give any (incorrectly) fired background run a moment to do damage, then
+  // confirm the sentinel and outputRoot are untouched.
+  await new Promise((resolve) => setTimeout(resolve, 200));
+  const sentinelContent = await fs.readFile(sentinel, 'utf8');
+  assert.equal(sentinelContent, 'must survive');
+  const outputRootStat = await fs.stat(outputRoot);
+  assert.ok(outputRootStat.isDirectory());
+});
+
+test('POST /api/run rejects siteName "." (would wipe outputRoot)', async (t) => {
+  const outputRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'server-test-'));
+  const marker = path.join(outputRoot, 'preexisting-site-marker.txt');
+  await fs.writeFile(marker, 'must survive');
+
+  const app = createApp({ outputRoot });
+  const server = app.listen(0);
+  const { port } = server.address();
+  const base = `http://127.0.0.1:${port}`;
+
+  t.after(async () => {
+    await new Promise((resolve) => server.close(resolve));
+    await fs.rm(outputRoot, { recursive: true, force: true });
+  });
+
+  const runRes = await fetch(`${base}/api/run`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      localFolder: fixtureDir,
+      mode: 'auto',
+      siteName: '.',
+    }),
+  });
+  assert.equal(runRes.status, 400);
+  const body = await runRes.json();
+  assert.match(body.error, /siteName/i);
+
+  await new Promise((resolve) => setTimeout(resolve, 200));
+  const markerContent = await fs.readFile(marker, 'utf8');
+  assert.equal(markerContent, 'must survive');
+});
+
 test('POST /api/run rejects an invalid mode value', async (t) => {
   const outputRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'server-test-'));
   const app = createApp({ outputRoot });

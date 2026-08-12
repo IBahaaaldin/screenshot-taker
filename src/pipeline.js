@@ -11,6 +11,13 @@ export async function runPipeline(
   onProgress = () => {}
 ) {
   const siteOutputDir = path.join(outputRoot, siteName);
+  const resolvedOutputRoot = path.resolve(outputRoot);
+  const resolvedSiteOutputDir = path.resolve(siteOutputDir);
+  if (!resolvedSiteOutputDir.startsWith(resolvedOutputRoot + path.sep)) {
+    throw new Error(
+      `Refusing to operate outside outputRoot: ${resolvedSiteOutputDir} is not within ${resolvedOutputRoot}`
+    );
+  }
   await fs.rm(siteOutputDir, { recursive: true, force: true });
   const browser = await chromium.launch();
   const manifest = { site: siteName, generatedAt: new Date().toISOString(), pages: [] };

@@ -21,6 +21,10 @@ export function createRunRouter({ outputRoot, runs }) {
       res.status(400).json({ error: 'siteName must contain only letters, numbers, dots, underscores, and hyphens' });
       return;
     }
+    if (siteName === '.' || siteName === '..' || path.basename(siteName) !== siteName) {
+      res.status(400).json({ error: 'siteName must not be a path traversal or path-separator segment' });
+      return;
+    }
     if (!VALID_MODES.has(mode)) {
       res.status(400).json({ error: "mode must be one of 'auto', 'selectors', or 'full-page'" });
       return;
