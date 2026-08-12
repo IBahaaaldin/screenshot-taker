@@ -1,0 +1,23 @@
+import express from 'express';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { createRunRouter } from './routes/run.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export function createApp({ outputRoot = path.join(__dirname, '..', 'output') } = {}) {
+  const app = express();
+  const runs = new Map();
+
+  app.use(express.json());
+  app.use('/api', createRunRouter({ outputRoot, runs }));
+  app.use(express.static(path.join(__dirname, '..', 'public')));
+
+  return app;
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const app = createApp();
+  const port = process.env.PORT || 3000;
+  app.listen(port, () => console.log(`Screenshot Taker running on http://localhost:${port}`));
+}
