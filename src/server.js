@@ -2,8 +2,12 @@ import express from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRunRouter } from './routes/run.js';
+import { createPostQueueRouter } from './routes/postQueue.js';
+import { loadEnvFile } from './env.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+loadEnvFile(path.join(__dirname, '..', '.env'));
 
 export function createApp({ outputRoot = path.join(__dirname, '..', 'output') } = {}) {
   const app = express();
@@ -11,6 +15,7 @@ export function createApp({ outputRoot = path.join(__dirname, '..', 'output') } 
 
   app.use(express.json());
   app.use('/api', createRunRouter({ outputRoot, runs }));
+  app.use('/api', createPostQueueRouter({ outputRoot }));
   app.use('/output', express.static(outputRoot));
   app.use(express.static(path.join(__dirname, '..', 'public')));
 
