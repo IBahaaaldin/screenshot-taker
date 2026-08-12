@@ -30,20 +30,24 @@ async function captureOneViewport(browser, pageUrl, viewport, mode, selectors, v
     const scrollHeight = await page.evaluate(() => document.documentElement.scrollHeight);
     await page.setViewportSize({ width: viewport.width, height: Math.max(scrollHeight, 800) });
 
-    const sections = await detectSections(page, mode, selectors);
     const written = [];
-    for (const section of sections) {
-      const filePath = path.join(viewportDir, `${section.slug}.png`);
-      await page.screenshot({
-        path: filePath,
-        clip: {
-          x: Math.max(section.x, 0),
-          y: Math.max(section.y, 0),
-          width: Math.max(section.width, 1),
-          height: Math.max(section.height, 1),
-        },
-      });
-      written.push({ slug: section.slug, path: filePath });
+    try {
+      const sections = await detectSections(page, mode, selectors);
+      for (const section of sections) {
+        const filePath = path.join(viewportDir, `${section.slug}.png`);
+        await page.screenshot({
+          path: filePath,
+          clip: {
+            x: Math.max(section.x, 0),
+            y: Math.max(section.y, 0),
+            width: Math.max(section.width, 1),
+            height: Math.max(section.height, 1),
+          },
+        });
+        written.push({ slug: section.slug, path: filePath });
+      }
+    } catch (err) {
+      console.error(`[screenshot] failed to capture sections for ${pageUrl} at ${viewport.name}: ${err.message}`);
     }
     return written;
   } finally {

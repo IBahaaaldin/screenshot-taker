@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+  <title>Flaky Fixture</title>
+  <script>
+    // Simulate a page whose script interferes with section detection,
+    // but only for the tablet viewport (width 768). This lets tests force
+    // a deterministic, viewport-specific failure inside detectSections
+    // without affecting the other viewports.
+    if (window.innerWidth === 768) {
+      Element.prototype.getBoundingClientRect = function () {
+        throw new Error('boom: getBoundingClientRect unavailable');
+      };
+    }
+  </script>
+</head>
+<body>
+  <section id="hero" style="height:400px;background:#eee;">
+    <h1>Hero</h1>
+  </section>
+  <section id="features" style="height:500px;background:#ddd;">
+    <h2>Features</h2>
+    <p>Some feature content here.</p>
+  </section>
+</body>
+</html>
