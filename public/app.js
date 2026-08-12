@@ -45,6 +45,21 @@ form.addEventListener('submit', async (e) => {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
+
+  if (!runRes.ok) {
+    let message = `Request failed (status ${runRes.status})`;
+    try {
+      const errBody = await runRes.json();
+      if (errBody && errBody.error) message = errBody.error;
+    } catch {
+      // ignore JSON parse failure, fall back to default message
+    }
+    const li = document.createElement('li');
+    li.textContent = `[error] ${message}`;
+    progressLog.appendChild(li);
+    return;
+  }
+
   const { runId } = await runRes.json();
 
   const events = new EventSource(`/api/progress/${runId}`);
@@ -55,7 +70,13 @@ form.addEventListener('submit', async (e) => {
     progressLog.appendChild(li);
 
     if (event.type === 'manifest-ready') {
-      renderGallery(event.manifest, runId);
+      if (event.manifest) {
+        renderGallery(event.manifest, runId);
+      } else {
+        const errLi = document.createElement('li');
+        errLi.textContent = '[error] Run failed, no output was generated';
+        progressLog.appendChild(errLi);
+      }
       events.close();
     }
   };
