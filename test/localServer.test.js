@@ -22,6 +22,11 @@ test('startLocalServer serves the folder and returns a working url', async () =>
   await server.close();
 });
 
+test('startLocalServer rejects a nonexistent folder path', async () => {
+  const missing = path.join(__dirname, 'fixtures', 'does-not-exist-folder');
+  await assert.rejects(() => startLocalServer(missing), /Local folder not found/);
+});
+
 test('startLocalServer picks a different free port on concurrent calls', async () => {
   const a = await startLocalServer(fixtureDir);
   const b = await startLocalServer(fixtureDir);

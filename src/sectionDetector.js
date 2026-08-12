@@ -20,6 +20,7 @@ export async function detectSections(page, mode, selectors = []) {
   });
 
   if (boxes.length === 0) {
+    console.warn('[sectionDetector] No sections auto-detected, falling back to full-page mode');
     return [await detectFullPage(page)];
   }
 

@@ -17,6 +17,16 @@ const MIME_TYPES = {
 export async function startLocalServer(folderPath) {
   const root = path.resolve(folderPath);
 
+  let stat;
+  try {
+    stat = await fs.stat(root);
+  } catch {
+    throw new Error(`Local folder not found: ${folderPath}`);
+  }
+  if (!stat.isDirectory()) {
+    throw new Error(`Local folder not found: ${folderPath}`);
+  }
+
   const server = http.createServer(async (req, res) => {
     try {
       const urlPath = decodeURIComponent(req.url.split('?')[0]);

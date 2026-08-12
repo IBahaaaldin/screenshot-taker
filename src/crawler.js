@@ -12,7 +12,9 @@ export async function crawlSite(startUrl, { maxPages = 50 } = {}) {
       if (visited.has(url)) continue;
       visited.add(url);
 
-      await page.goto(url, { waitUntil: 'networkidle' }).catch(() => {});
+      await page.goto(url, { waitUntil: 'load' }).catch((err) => {
+        console.error(`[crawler] failed to load ${url}: ${err.message}`);
+      });
       const hrefs = await page.$$eval('a[href]', (as) => as.map((a) => a.getAttribute('href')));
 
       for (const href of hrefs) {

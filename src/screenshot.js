@@ -58,7 +58,7 @@ async function captureOneViewport(browser, pageUrl, viewport, mode, selectors, v
 async function gotoWithRetry(page, pageUrl) {
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      await page.goto(pageUrl, { waitUntil: 'networkidle', timeout: 15000 });
+      await page.goto(pageUrl, { waitUntil: 'load', timeout: 15000 });
       return true;
     } catch (err) {
       if (attempt === 1) {
