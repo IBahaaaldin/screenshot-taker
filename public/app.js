@@ -81,17 +81,28 @@ form.addEventListener('submit', async (e) => {
     return;
   }
 
-  const { runId } = await runRes.json();
+  let runInFlight = true;
+
+  let runId;
+  try {
+    ({ runId } = await runRes.json());
+  } catch (err) {
+    logLine('error', `Server returned an unreadable response — ${err.message}`);
+    setStatusLamp('failed');
+    setSubmitting(false);
+    return;
+  }
+
   const events = new EventSource(`/api/progress/${runId}`);
 
   events.onmessage = (msg) => {
     const event = JSON.parse(msg.data);
 
     if (event.type === 'manifest-ready') {
+      runInFlight = false;
       events.close();
       setSubmitting(false);
       if (event.manifest) {
-        logLine('run-done', 'Contact sheet ready.');
         setStatusLamp('done');
         renderGallery(event.manifest, runId);
       } else {
@@ -106,7 +117,8 @@ form.addEventListener('submit', async (e) => {
 
   events.onerror = () => {
     events.close();
-    if (progressSection.querySelector('.status-lamp').className.includes('running')) {
+    if (runInFlight) {
+      runInFlight = false;
       logLine('error', 'Lost connection to the server.');
       setStatusLamp('failed');
     }

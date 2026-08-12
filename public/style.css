@@ -5,7 +5,7 @@
 :root {
   --ink: #f2ece1;
   --ink-dim: #b9b0a2;
-  --ink-faint: #7c7468;
+  --ink-faint: #918879;
   --ground: #131114;
   --ground-raised: #1b181c;
   --ground-card: #19161a;
@@ -200,6 +200,10 @@ main {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.field[hidden] {
+  display: none;
 }
 
 .field label {
