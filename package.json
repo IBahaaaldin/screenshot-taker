@@ -1,6 +1,8 @@
 {
   "name": "screenshot-taker",
   "version": "0.1.0",
+  "description": "Crawl a website, screenshot every section at 4 device viewports, and build ready-to-post composite mockup images.",
+  "license": "MIT",
   "private": true,
   "type": "module",
   "engines": { "node": ">=18" },
