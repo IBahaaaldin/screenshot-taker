@@ -8,10 +8,21 @@ import { startLocalServer } from '../localServer.js';
 export function createRunRouter({ outputRoot, runs }) {
   const router = express.Router();
 
+  const SITE_NAME_RE = /^[A-Za-z0-9._-]+$/;
+  const VALID_MODES = new Set(['auto', 'selectors', 'full-page']);
+
   router.post('/run', async (req, res) => {
     const { url, localFolder, mode, selectors = [], siteName } = req.body || {};
     if (!siteName || !mode || (!url && !localFolder) || (url && localFolder)) {
       res.status(400).json({ error: 'Provide siteName, mode, and exactly one of url/localFolder' });
+      return;
+    }
+    if (!SITE_NAME_RE.test(siteName)) {
+      res.status(400).json({ error: 'siteName must contain only letters, numbers, dots, underscores, and hyphens' });
+      return;
+    }
+    if (!VALID_MODES.has(mode)) {
+      res.status(400).json({ error: "mode must be one of 'auto', 'selectors', or 'full-page'" });
       return;
     }
 
@@ -48,9 +59,7 @@ export function createRunRouter({ outputRoot, runs }) {
         res.write(`data: ${JSON.stringify(event)}\n\n`);
       }
       if (run.status !== 'running' && sent >= run.events.length) {
-        if (run.manifest) {
-          res.write(`data: ${JSON.stringify({ type: 'manifest-ready', manifest: run.manifest })}\n\n`);
-        }
+        res.write(`data: ${JSON.stringify({ type: 'manifest-ready', manifest: run.manifest || null })}\n\n`);
         clearInterval(interval);
         res.end();
       }
@@ -66,7 +75,10 @@ export function createRunRouter({ outputRoot, runs }) {
       return;
     }
     if (run.status !== 'done') {
-      res.status(409).json({ error: `Run is not finished yet (status: ${run.status})` });
+      const message = run.status === 'error'
+        ? 'Run failed, no output to download'
+        : `Run is not finished yet (status: ${run.status})`;
+      res.status(409).json({ error: message });
       return;
     }
     res.setHeader('Content-Type', 'application/zip');

@@ -20,5 +20,5 @@ export function createApp({ outputRoot = path.join(__dirname, '..', 'output') } 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const app = createApp();
   const port = process.env.PORT || 3000;
-  app.listen(port, () => console.log(`Screenshot Taker running on http://localhost:${port}`));
+  app.listen(port, '127.0.0.1', () => console.log(`Screenshot Taker running on http://localhost:${port}`));
 }
