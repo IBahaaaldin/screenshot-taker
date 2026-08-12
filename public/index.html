@@ -91,6 +91,31 @@
       </div>
       <div id="gallery-content"></div>
     </section>
+
+    <section id="queue-panel" class="deck" aria-labelledby="queue-heading">
+      <div class="deck-label">
+        <span class="frame-no">04</span>
+        <h2 id="queue-heading">Post log</h2>
+      </div>
+      <div id="queue-content" class="queue-content">
+        <p class="queue-empty">Nothing posted yet.</p>
+      </div>
+    </section>
+
+    <div id="caption-modal" class="modal-overlay" hidden>
+      <div class="modal-card">
+        <h3 id="caption-modal-title">Post to Instagram</h3>
+        <textarea id="caption-text" rows="6"></textarea>
+        <div class="modal-actions">
+          <button type="button" id="caption-cancel" class="modal-btn-secondary">Cancel</button>
+          <button type="button" id="caption-submit" class="shutter">
+            <span class="shutter-ring"></span>
+            <span class="shutter-label">Post</span>
+          </button>
+        </div>
+        <p id="caption-error" class="caption-error" hidden></p>
+      </div>
+    </div>
   </main>
 
   <footer class="colophon">

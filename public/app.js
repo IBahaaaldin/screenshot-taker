@@ -13,6 +13,17 @@ const gallerySection = document.getElementById('gallery');
 const galleryContent = document.getElementById('gallery-content');
 const downloadLink = document.getElementById('download-link');
 
+const queueContent = document.getElementById('queue-content');
+const captionModal = document.getElementById('caption-modal');
+const captionModalTitle = document.getElementById('caption-modal-title');
+const captionText = document.getElementById('caption-text');
+const captionCancel = document.getElementById('caption-cancel');
+const captionSubmit = document.getElementById('caption-submit');
+const captionError = document.getElementById('caption-error');
+
+const HASHTAGS = '#webdesign #restaurant #instagood #foodie #smallbusiness';
+let pendingPost = null; // { siteName, pageUrl, kind, images } awaiting caption confirmation
+
 const SOURCE_PLACEHOLDERS = {
   url: { label: 'Source URL', placeholder: 'https://example.com' },
   localFolder: { label: 'Local folder path', placeholder: '/Users/you/projects/my-site' },
@@ -152,6 +163,102 @@ function logLine(type, message) {
   li.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
+function draftCaption({ siteName, pageUrl, slug }) {
+  const generic = /^section-\d+$/.test(slug);
+  let heading = slug;
+  if (generic) {
+    const { pathname } = new URL(pageUrl);
+    const base = pathname.replace(/^\/+|\/+$/g, '').replace(/\.html$/, '');
+    heading = base === '' || base === 'index' ? 'home' : base;
+  }
+  return `${siteName} — ${heading}\n\n${HASHTAGS}`;
+}
+
+function openCaptionModal({ siteName, pageUrl, kind, images, slugForDraft }) {
+  pendingPost = { siteName, pageUrl, kind, images };
+  captionModalTitle.textContent = kind === 'carousel' ? 'Post page as carousel' : 'Post section';
+  captionText.value = draftCaption({ siteName, pageUrl, slug: slugForDraft });
+  captionError.hidden = true;
+  captionModal.hidden = false;
+  captionText.focus();
+}
+
+function closeCaptionModal() {
+  captionModal.hidden = true;
+  pendingPost = null;
+}
+
+captionCancel.addEventListener('click', closeCaptionModal);
+
+captionSubmit.addEventListener('click', async () => {
+  if (!pendingPost) return;
+  captionSubmit.disabled = true;
+  captionSubmit.classList.add('spinning');
+  captionError.hidden = true;
+
+  try {
+    const res = await fetch('/api/queue', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...pendingPost, caption: captionText.value }),
+    });
+    const result = await res.json();
+    if (!res.ok) {
+      throw new Error(result.error || `Request failed (status ${res.status})`);
+    }
+    closeCaptionModal();
+    await refreshQueue();
+  } catch (err) {
+    captionError.textContent = err.message;
+    captionError.hidden = false;
+  } finally {
+    captionSubmit.disabled = false;
+    captionSubmit.classList.remove('spinning');
+  }
+});
+
+async function refreshQueue() {
+  const res = await fetch('/api/queue');
+  const { items } = await res.json();
+  renderQueue(items);
+}
+
+function renderQueue(items) {
+  queueContent.innerHTML = '';
+  if (items.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'queue-empty';
+    empty.textContent = 'Nothing posted yet.';
+    queueContent.appendChild(empty);
+    return;
+  }
+
+  for (const item of items) {
+    const row = document.createElement('div');
+    row.className = 'queue-row';
+
+    const status = document.createElement('span');
+    status.className = `queue-status queue-status-${item.status}`;
+    status.textContent = item.status;
+
+    const label = document.createElement('span');
+    label.className = 'queue-label';
+    label.textContent = `${item.siteName} — ${item.kind === 'carousel' ? 'carousel' : 'single'}`;
+
+    row.appendChild(status);
+    row.appendChild(label);
+
+    if (item.status === 'failed' && item.error) {
+      const err = document.createElement('span');
+      err.className = 'queue-error';
+      err.textContent = item.error;
+      row.appendChild(err);
+    }
+
+    queueContent.appendChild(row);
+  }
+}
+
 function renderGallery(manifest, runId) {
   gallerySection.hidden = false;
   downloadLink.href = `/api/download/${runId}`;
@@ -165,6 +272,24 @@ function renderGallery(manifest, runId) {
     const title = document.createElement('h3');
     title.textContent = page.url;
     pageBlock.appendChild(title);
+
+    const pageComposites = page.sections.filter((s) => s.composite).map((s) => s.composite);
+    if (pageComposites.length > 1) {
+      const carouselBtn = document.createElement('button');
+      carouselBtn.type = 'button';
+      carouselBtn.className = 'page-carousel-btn';
+      carouselBtn.textContent = `Post all ${pageComposites.length} as carousel`;
+      carouselBtn.addEventListener('click', () =>
+        openCaptionModal({
+          siteName: manifest.site,
+          pageUrl: page.url,
+          kind: 'carousel',
+          images: pageComposites,
+          slugForDraft: page.sections[0].slug,
+        })
+      );
+      pageBlock.appendChild(carouselBtn);
+    }
 
     const strip = document.createElement('div');
     strip.className = 'strip';
@@ -199,6 +324,23 @@ function renderGallery(manifest, runId) {
       tag.appendChild(count);
       frame.appendChild(tag);
 
+      if (section.composite) {
+        const postBtn = document.createElement('button');
+        postBtn.type = 'button';
+        postBtn.className = 'frame-post-btn';
+        postBtn.textContent = 'Post';
+        postBtn.addEventListener('click', () =>
+          openCaptionModal({
+            siteName: manifest.site,
+            pageUrl: page.url,
+            kind: 'single',
+            images: [section.composite],
+            slugForDraft: section.slug,
+          })
+        );
+        frame.appendChild(postBtn);
+      }
+
       strip.appendChild(frame);
     }
 
@@ -211,3 +353,5 @@ function toWebPath(absolutePath) {
   const idx = absolutePath.indexOf('/output/');
   return idx >= 0 ? absolutePath.slice(idx) : absolutePath;
 }
+
+refreshQueue();
