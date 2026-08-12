@@ -44,6 +44,33 @@ export async function postSingleImage({ igUserId, accessToken, imageUrl, caption
   return publishContainer({ igUserId, accessToken, creationId }, fetchImpl);
 }
 
+export async function postCarousel({ igUserId, accessToken, imageUrls, caption }, fetchImpl = fetch) {
+  const childIds = [];
+  for (const imageUrl of imageUrls) {
+    const childId = await createImageContainer(
+      { igUserId, accessToken, imageUrl, isCarouselItem: true },
+      fetchImpl
+    );
+    await pollContainerStatus({ creationId: childId, accessToken }, fetchImpl);
+    childIds.push(childId);
+  }
+
+  const parentBody = await graphPost(
+    `/${igUserId}/media`,
+    {
+      media_type: 'CAROUSEL',
+      children: childIds.join(','),
+      caption,
+      access_token: accessToken,
+    },
+    fetchImpl
+  );
+  const parentId = parentBody.id;
+
+  await pollContainerStatus({ creationId: parentId, accessToken }, fetchImpl);
+  return publishContainer({ igUserId, accessToken, creationId: parentId }, fetchImpl);
+}
+
 async function graphPost(path, params, fetchImpl) {
   const res = await fetchImpl(`${GRAPH_API_BASE}${path}`, {
     method: 'POST',

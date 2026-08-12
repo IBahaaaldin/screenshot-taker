@@ -6,6 +6,7 @@ import {
   pollContainerStatus,
   publishContainer,
   postSingleImage,
+  postCarousel,
 } from '../src/instagram.js';
 
 function jsonResponse(body, ok = true, status = 200) {
@@ -141,4 +142,45 @@ test('postSingleImage composes create + poll + publish into one media id', async
   assert.ok(calls.some((u) => u.endsWith('/media')));
   assert.ok(calls.some((u) => u.includes('container-1')));
   assert.ok(calls.some((u) => u.endsWith('/media_publish')));
+});
+
+test('postCarousel creates child containers, a parent carousel container, and publishes it', async () => {
+  const calls = [];
+  let childCount = 0;
+  const fakeFetch = async (url, options) => {
+    calls.push({ url, options });
+    if (options?.method === 'POST' && url.endsWith('/media')) {
+      const body = new URLSearchParams(options.body);
+      if (body.get('is_carousel_item') === 'true') {
+        childCount += 1;
+        return jsonResponse({ id: `child-${childCount}` });
+      }
+      // parent carousel container
+      return jsonResponse({ id: 'parent-1' });
+    }
+    if (url.endsWith('/media_publish')) return jsonResponse({ id: 'media-carousel-1' });
+    return jsonResponse({ status_code: 'FINISHED' }); // polling GET
+  };
+
+  const mediaId = await postCarousel(
+    {
+      igUserId: 'IGUSER',
+      accessToken: 'TOKEN',
+      imageUrls: ['https://ex.com/a.png', 'https://ex.com/b.png'],
+      caption: 'carousel caption',
+    },
+    fakeFetch
+  );
+
+  assert.equal(mediaId, 'media-carousel-1');
+
+  const parentCall = calls.find((c) => {
+    if (!c.url.endsWith('/media') || c.options?.method !== 'POST') return false;
+    const body = new URLSearchParams(c.options.body);
+    return body.get('media_type') === 'CAROUSEL';
+  });
+  assert.ok(parentCall, 'expected a parent container request with media_type=CAROUSEL');
+  const parentBody = new URLSearchParams(parentCall.options.body);
+  assert.equal(parentBody.get('children'), 'child-1,child-2');
+  assert.equal(parentBody.get('caption'), 'carousel caption');
 });
