@@ -1,3 +1,4 @@
+import fs from 'node:fs/promises';
 import path from 'node:path';
 import { chromium } from 'playwright';
 import { crawlSite } from './crawler.js';
@@ -10,6 +11,7 @@ export async function runPipeline(
   onProgress = () => {}
 ) {
   const siteOutputDir = path.join(outputRoot, siteName);
+  await fs.rm(siteOutputDir, { recursive: true, force: true });
   const browser = await chromium.launch();
   const manifest = { site: siteName, generatedAt: new Date().toISOString(), pages: [] };
 

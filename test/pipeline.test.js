@@ -51,6 +51,55 @@ test('runPipeline crawls, shoots, composites, and writes a manifest for the fixt
   }
 });
 
+test('runPipeline clears stale output from a previous run of the same siteName', async () => {
+  const server = await startLocalServer(fixtureDir);
+  const outputRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'pipeline-rerun-test-'));
+  try {
+    await runPipeline(
+      {
+        startUrl: `${server.url}/index.html`,
+        mode: 'auto',
+        selectors: [],
+        siteName: 'fixture-site',
+        outputRoot,
+        maxPages: 10,
+      },
+      () => {}
+    );
+
+    const siteOutputDir = path.join(outputRoot, 'fixture-site');
+    const strayFile = path.join(siteOutputDir, 'stray-leftover.txt');
+    await fs.writeFile(strayFile, 'leftover from a previous run');
+    assert.ok(await fileExists(strayFile));
+
+    await runPipeline(
+      {
+        startUrl: `${server.url}/index.html`,
+        mode: 'auto',
+        selectors: [],
+        siteName: 'fixture-site',
+        outputRoot,
+        maxPages: 10,
+      },
+      () => {}
+    );
+
+    assert.equal(await fileExists(strayFile), false, 'stray file from prior run should be gone');
+  } finally {
+    await server.close();
+    await fs.rm(outputRoot, { recursive: true, force: true });
+  }
+});
+
+async function fileExists(p) {
+  try {
+    await fs.stat(p);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 test('runPipeline contains a single page failure and still writes a manifest for the surviving pages', async () => {
   const server = await startLocalServer(failureFixtureDir);
   const outputRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'pipeline-failure-test-'));
