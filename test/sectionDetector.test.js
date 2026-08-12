@@ -48,6 +48,21 @@ test('selectors mode returns one entry per matching selector', async () => {
   await browser.close();
 });
 
+test('selectors mode dedupes colliding slugs', async () => {
+  const browser = await chromium.launch();
+  const page = await browser.newPage({ viewport: { width: 1024, height: 1024 } });
+  await page.setContent(`<!doctype html><html><body>
+    <div class="foo-bar" style="height:100px;">A</div>
+    <div class="foo bar" style="height:150px;">B</div>
+  </body></html>`);
+  const sections = await detectSections(page, 'selectors', ['.foo-bar', '.foo.bar']);
+  assert.equal(sections.length, 2);
+  assert.equal(sections[0].slug, 'foo-bar');
+  assert.equal(sections[1].slug, 'foo-bar-2');
+  assert.notEqual(sections[0].slug, sections[1].slug);
+  await browser.close();
+});
+
 test('full-page mode returns a single full-document entry', async () => {
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 1024, height: 1024 } });

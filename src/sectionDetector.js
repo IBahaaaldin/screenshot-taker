@@ -28,6 +28,7 @@ export async function detectSections(page, mode, selectors = []) {
 
 async function detectBySelectors(page, selectors) {
   const results = [];
+  const seenSlugs = new Set();
   for (const selector of selectors) {
     const box = await page.evaluate((sel) => {
       const el = document.querySelector(sel);
@@ -36,7 +37,17 @@ async function detectBySelectors(page, selectors) {
       return { x: r.x, y: r.y, width: r.width, height: r.height };
     }, selector);
     if (box) {
-      results.push({ slug: slugify(selector), ...box });
+      let slug = slugify(selector);
+      if (seenSlugs.has(slug)) {
+        const base = slug;
+        let n = 2;
+        while (seenSlugs.has(`${base}-${n}`)) {
+          n += 1;
+        }
+        slug = `${base}-${n}`;
+      }
+      seenSlugs.add(slug);
+      results.push({ slug, ...box });
     }
   }
   return results;
