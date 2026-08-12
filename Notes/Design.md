@@ -1,0 +1,1 @@
+../docs/superpowers/specs/2026-08-13-screenshot-taker-design.md
