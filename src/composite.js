@@ -1,7 +1,6 @@
 // src/composite.js
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
 
 const FRAME_ORDER = ['desktop', 'laptop', 'tablet', 'mobile'];
 const CANVAS_WIDTH = 2000;
@@ -13,12 +12,13 @@ export async function buildComposite(browser, imagesByViewport, outputPath) {
     throw new Error('buildComposite requires at least one viewport image');
   }
 
-  const fileUrls = {};
+  const dataUrls = {};
   for (const name of entries) {
-    fileUrls[name] = pathToFileURL(imagesByViewport[name]).href;
+    const buffer = await fs.readFile(imagesByViewport[name]);
+    dataUrls[name] = `data:image/png;base64,${buffer.toString('base64')}`;
   }
 
-  const html = renderHtml(entries, fileUrls);
+  const html = renderHtml(entries, dataUrls);
 
   const page = await browser.newPage({ viewport: { width: CANVAS_WIDTH, height: CANVAS_HEIGHT } });
   try {
@@ -32,9 +32,9 @@ export async function buildComposite(browser, imagesByViewport, outputPath) {
   return outputPath;
 }
 
-function renderHtml(entries, fileUrls) {
+function renderHtml(entries, dataUrls) {
   const frames = entries
-    .map((name) => frameHtml(name, fileUrls[name]))
+    .map((name) => frameHtml(name, dataUrls[name]))
     .join('\n');
 
   return `<!doctype html>
@@ -54,7 +54,7 @@ function renderHtml(entries, fileUrls) {
 </html>`;
 }
 
-function frameHtml(name, fileUrl) {
+function frameHtml(name, dataUrl) {
   const dims = {
     desktop: { w: 560, h: 350 },
     laptop: { w: 460, h: 300 },
@@ -64,7 +64,7 @@ function frameHtml(name, fileUrl) {
 
   return `<div class="frame">
     <div class="bezel" style="width:${dims.w}px;height:${dims.h}px;">
-      <img src="${fileUrl}" />
+      <img src="${dataUrl}" />
     </div>
     <div class="label">${name}</div>
   </div>`;
