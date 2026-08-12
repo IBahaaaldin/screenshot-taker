@@ -22,16 +22,22 @@ export async function runPipeline(
 
       const pageSlug = pageSlugFor(pageUrl);
       const pageOutputDir = path.join(siteOutputDir, pageSlug);
-      const viewportResults = await captureAllViewports(browser, pageUrl, {
-        mode,
-        selectors,
-        outputDir: pageOutputDir,
-      });
 
-      const sections = await buildCompositesForPage(browser, pageOutputDir, viewportResults, onProgress);
-      manifest.pages.push({ url: pageUrl, sections });
+      try {
+        const viewportResults = await captureAllViewports(browser, pageUrl, {
+          mode,
+          selectors,
+          outputDir: pageOutputDir,
+        });
 
-      onProgress({ type: 'page-done', message: `Finished ${pageUrl}` });
+        const sections = await buildCompositesForPage(browser, pageOutputDir, viewportResults, onProgress);
+        manifest.pages.push({ url: pageUrl, sections });
+
+        onProgress({ type: 'page-done', message: `Finished ${pageUrl}` });
+      } catch (err) {
+        console.error(`Failed to process page ${pageUrl}:`, err);
+        onProgress({ type: 'page-error', message: `Failed to process ${pageUrl}: ${err.message}` });
+      }
     }
   } finally {
     await browser.close();

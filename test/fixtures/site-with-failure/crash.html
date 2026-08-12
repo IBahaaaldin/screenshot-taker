@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+<head>
+  <title>Crash Fixture</title>
+  <script>
+    // Simulate a page whose DOM is unusable for section capture in a way
+    // that escapes the per-viewport error containment in screenshot.js:
+    // `document.documentElement` throws whenever it is accessed, which
+    // breaks the scroll-height probe that runs *outside* the try/catch
+    // in captureOneViewport (src/screenshot.js), causing
+    // captureAllViewports to reject for every viewport on this page.
+    Object.defineProperty(document, 'documentElement', {
+      get() {
+        throw new Error('boom: documentElement unavailable');
+      },
+    });
+  </script>
+</head>
+<body>
+  <section id="hero" style="height:400px;background:#eee;">
+    <h1>Crash</h1>
+    <a href="index.html">Home</a>
+  </section>
+</body>
+</html>
