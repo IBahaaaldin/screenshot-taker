@@ -15,6 +15,8 @@ const MIME_TYPES = {
 };
 
 export async function startLocalServer(folderPath) {
+  const root = path.resolve(folderPath);
+
   const server = http.createServer(async (req, res) => {
     try {
       const urlPath = decodeURIComponent(req.url.split('?')[0]);
@@ -23,7 +25,7 @@ export async function startLocalServer(folderPath) {
         filePath = path.join(folderPath, 'index.html');
       }
       const resolved = path.resolve(filePath);
-      if (!resolved.startsWith(path.resolve(folderPath))) {
+      if (resolved !== root && !resolved.startsWith(root + path.sep)) {
         res.writeHead(403);
         res.end('Forbidden');
         return;
@@ -38,6 +40,12 @@ export async function startLocalServer(folderPath) {
     }
   });
 
+  const sockets = new Set();
+  server.on('connection', (socket) => {
+    sockets.add(socket);
+    socket.on('close', () => sockets.delete(socket));
+  });
+
   await new Promise((resolve, reject) => {
     server.listen(0, '127.0.0.1', resolve);
     server.on('error', reject);
@@ -46,6 +54,12 @@ export async function startLocalServer(folderPath) {
   const { port } = server.address();
   return {
     url: `http://127.0.0.1:${port}`,
-    close: () => new Promise((resolve) => server.close(resolve)),
+    close: () =>
+      new Promise((resolve) => {
+        for (const socket of sockets) {
+          socket.destroy();
+        }
+        server.close(resolve);
+      }),
   };
 }

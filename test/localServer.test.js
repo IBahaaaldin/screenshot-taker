@@ -2,6 +2,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
+import fs from 'node:fs/promises';
+import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { startLocalServer } from '../src/localServer.js';
 
@@ -26,4 +28,27 @@ test('startLocalServer picks a different free port on concurrent calls', async (
   assert.notEqual(a.url, b.url);
   await a.close();
   await b.close();
+});
+
+test('startLocalServer rejects path traversal into a sibling directory sharing a name prefix', async () => {
+  const tmpBase = await fs.mkdtemp(path.join(os.tmpdir(), 'localserver-traversal-'));
+  const siteDir = path.join(tmpBase, 'site');
+  const evilDir = path.join(tmpBase, 'site-evil');
+  await fs.mkdir(siteDir, { recursive: true });
+  await fs.mkdir(evilDir, { recursive: true });
+  await fs.writeFile(path.join(siteDir, 'index.html'), '<html>Fixture Home</html>');
+  await fs.writeFile(path.join(evilDir, 'secret.txt'), 'TOP SECRET');
+
+  const server = await startLocalServer(siteDir);
+  try {
+    // Use %2e%2e so the URL parser doesn't normalize away the traversal
+    // before the request reaches the server (it must be decoded server-side).
+    const res = await fetch(`${server.url}/%2e%2e/site-evil/secret.txt`);
+    assert.notEqual(res.status, 200);
+    const body = await res.text();
+    assert.doesNotMatch(body, /TOP SECRET/);
+  } finally {
+    await server.close();
+    await fs.rm(tmpBase, { recursive: true, force: true });
+  }
 });
