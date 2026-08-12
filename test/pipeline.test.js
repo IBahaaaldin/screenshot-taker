@@ -140,7 +140,7 @@ async function fileExists(p) {
   }
 }
 
-test('runPipeline contains a single page failure and still writes a manifest for the surviving pages', async () => {
+test('runPipeline captures a page whose scripts throw on document.documentElement access', async () => {
   const server = await startLocalServer(failureFixtureDir);
   const outputRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'pipeline-failure-test-'));
   const events = [];
@@ -157,29 +157,36 @@ test('runPipeline contains a single page failure and still writes a manifest for
       (event) => events.push(event)
     );
 
-    // crash.html throws while probing scroll height for every viewport, which
-    // used to propagate out of runPipeline entirely and abort the whole run.
+    // crash.html makes `document.documentElement` throw on access. The old
+    // capture implementation probed document.documentElement.scrollHeight
+    // outside any try/catch, so this used to propagate out of runPipeline
+    // and abort the whole run. Capture no longer touches documentElement
+    // in the main path (locator screenshots handle scrolling themselves),
+    // and the one remaining best-effort touch (the scroll-reveal trigger)
+    // catches its own errors — so this page now succeeds like any other.
+    // The per-page try/catch in runPipeline stays in place as defense in
+    // depth against failures this fixture can no longer trigger (e.g. a
+    // filesystem error while writing a page's output).
     assert.equal(manifest.site, 'failure-site');
-    assert.equal(manifest.pages.length, 2, 'only the two healthy pages should make it into the manifest');
+    assert.equal(manifest.pages.length, 3, 'all three pages should succeed');
 
     const urls = manifest.pages.map((p) => p.url);
     assert.ok(urls.some((u) => u.endsWith('/index.html')));
     assert.ok(urls.some((u) => u.endsWith('/good.html')));
-    assert.ok(!urls.some((u) => u.endsWith('/crash.html')), 'the failed page should be omitted, not crash the run');
+    assert.ok(urls.some((u) => u.endsWith('/crash.html')));
 
-    const good = manifest.pages.find((p) => p.url.endsWith('/good.html'));
-    assert.equal(good.sections.length, 1);
-    assert.ok(good.sections[0].composite);
-    const stat = await fs.stat(good.sections[0].composite);
-    assert.ok(stat.size > 0);
+    for (const page of manifest.pages) {
+      assert.ok(page.sections.length > 0, `${page.url} should have captured at least one section`);
+      for (const section of page.sections) {
+        assert.ok(section.composite, `${page.url} / ${section.slug} should have a composite`);
+        const stat = await fs.stat(section.composite);
+        assert.ok(stat.size > 0);
+      }
+    }
 
-    // The run must still resolve normally and reach run-done, plus surface a
-    // page-error event for the page that failed.
     const types = events.map((e) => e.type);
     assert.ok(types.includes('run-done'));
-    assert.ok(types.includes('page-error'), 'a page-error event should be emitted for the crashed page');
-    const errorEvent = events.find((e) => e.type === 'page-error');
-    assert.ok(errorEvent.message.includes('crash.html'));
+    assert.ok(!types.includes('page-error'), 'no page should have failed');
 
     const onDisk = await readManifest(path.join(outputRoot, 'failure-site'));
     assert.deepEqual(onDisk, manifest);

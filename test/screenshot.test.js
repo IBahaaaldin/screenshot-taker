@@ -74,3 +74,35 @@ test('captureAllViewports does not abort the whole run when one viewport fails d
     await fs.rm(outputDir, { recursive: true, force: true });
   }
 });
+
+test('a hidden selector match fails fast instead of waiting out the default actionability timeout', async () => {
+  const server = await startLocalServer(fixtureDir);
+  const browser = await chromium.launch();
+  const outputDir = await fs.mkdtemp(path.join(os.tmpdir(), 'shot-test-hidden-'));
+  try {
+    const start = Date.now();
+    const result = await captureAllViewports(browser, `${server.url}/hidden-selector.html`, {
+      mode: 'selectors',
+      selectors: ['#visible', '#hidden'],
+      outputDir,
+    });
+    const elapsedMs = Date.now() - start;
+
+    // 4 viewports each waiting out the hidden element: ~5s timeout each
+    // lands around 20-25s total; Playwright's default ~30s timeout would
+    // land past 120s. The bound below is comfortably below the default-
+    // timeout scenario while tolerant of slower machines.
+    assert.ok(elapsedMs < 60000, `expected the short per-section timeout to apply, took ${elapsedMs}ms`);
+
+    const desktop = result.find((r) => r.viewport === 'desktop');
+    assert.deepEqual(
+      desktop.sections.map((s) => s.slug),
+      ['visible'],
+      'only the visible section should be captured; the hidden one should be dropped, not hang'
+    );
+  } finally {
+    await browser.close();
+    await server.close();
+    await fs.rm(outputDir, { recursive: true, force: true });
+  }
+});
