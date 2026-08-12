@@ -17,7 +17,7 @@ test('end-to-end: run fixture site through HTTP API, all viewports and composite
   const base = `http://127.0.0.1:${port}`;
 
   t.after(async () => {
-    server.close();
+    await new Promise((resolve) => server.close(resolve));
     await fs.rm(outputRoot, { recursive: true, force: true });
   });
 
