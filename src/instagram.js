@@ -60,7 +60,12 @@ async function graphGet(path, params, fetchImpl) {
 }
 
 async function parseGraphResponse(res) {
-  const body = await res.json();
+  let body;
+  try {
+    body = await res.json();
+  } catch {
+    throw new Error(`Instagram API request failed (${res.status}): response was not valid JSON`);
+  }
   if (!res.ok || body.error) {
     throw new Error(body.error?.message || `Instagram API request failed (${res.status})`);
   }

@@ -102,6 +102,27 @@ test('a non-ok response throws with the Graph API error message', async () => {
   );
 });
 
+test('a non-ok, non-JSON response throws a clear error instead of a raw parse error', async () => {
+  const fakeFetch = async () => ({
+    ok: false,
+    status: 502,
+    json: async () => {
+      throw new SyntaxError('Unexpected end of JSON input');
+    },
+  });
+
+  await assert.rejects(
+    () => createImageContainer({ igUserId: 'X', accessToken: 'BAD', imageUrl: 'https://ex.com/a.png' }, fakeFetch),
+    (err) => {
+      assert.ok(err instanceof Error);
+      assert.ok(!/Unexpected end of JSON input/.test(err.message));
+      assert.ok(/502/.test(err.message));
+      assert.ok(/not valid JSON/i.test(err.message));
+      return true;
+    }
+  );
+});
+
 test('postSingleImage composes create + poll + publish into one media id', async () => {
   const calls = [];
   const fakeFetch = async (url) => {
