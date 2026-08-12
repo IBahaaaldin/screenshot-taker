@@ -1,55 +1,102 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Screenshot Taker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <main>
-    <h1>Screenshot Taker</h1>
-    <form id="run-form">
-      <label>
-        Site name
-        <input type="text" id="siteName" required placeholder="my-restaurant-site" />
-      </label>
-      <label>
-        Source type
-        <select id="sourceType">
-          <option value="url">Live URL / dev server URL</option>
-          <option value="localFolder">Local folder path</option>
-        </select>
-      </label>
-      <label>
-        <span id="sourceLabel">URL</span>
-        <input type="text" id="sourceValue" required placeholder="https://example.com" />
-      </label>
-      <label>
-        Section detection
-        <select id="mode">
-          <option value="auto">Auto-detect</option>
-          <option value="selectors">CSS selector list</option>
-          <option value="full-page">Full page only</option>
-        </select>
-      </label>
-      <label id="selectorsRow" style="display:none;">
-        Selectors (comma-separated)
-        <input type="text" id="selectors" placeholder="#hero, .menu-section" />
-      </label>
-      <button type="submit">Run</button>
-    </form>
+  <div class="grain"></div>
 
-    <section id="progress" hidden>
-      <h2>Progress</h2>
-      <ul id="progress-log"></ul>
+  <header class="masthead">
+    <div class="masthead-inner">
+      <div class="wordmark">
+        <span class="wordmark-eye">◍</span>
+        <h1>Screenshot<br />Taker</h1>
+      </div>
+      <p class="tagline">Point it at a site. Walk away with a contact sheet — every section, every screen size, framed and ready to post.</p>
+    </div>
+    <div class="sprockets" aria-hidden="true"></div>
+  </header>
+
+  <main>
+    <section class="deck" aria-labelledby="run-heading">
+      <div class="deck-label">
+        <span class="frame-no">01</span>
+        <h2 id="run-heading">Load the roll</h2>
+      </div>
+
+      <form id="run-form" class="control-panel" novalidate>
+        <div class="field">
+          <label for="siteName">Site name</label>
+          <input type="text" id="siteName" name="siteName" required placeholder="baba-ganoush" autocomplete="off" />
+          <span class="field-hint">Used for the output folder — letters, numbers, dots, dashes.</span>
+        </div>
+
+        <div class="field field-source">
+          <label for="sourceValue"><span id="sourceLabel">Source URL</span></label>
+          <div class="source-row">
+            <select id="sourceType" name="sourceType" aria-label="Source type">
+              <option value="url">Live URL</option>
+              <option value="localFolder">Local folder</option>
+            </select>
+            <input type="text" id="sourceValue" name="sourceValue" required placeholder="https://example.com" autocomplete="off" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="mode">Section detection</label>
+          <select id="mode" name="mode">
+            <option value="auto">Auto-detect sections</option>
+            <option value="selectors">CSS selector list</option>
+            <option value="full-page">Full page only</option>
+          </select>
+        </div>
+
+        <div class="field" id="selectorsRow" hidden>
+          <label for="selectors">Selectors <span class="field-hint-inline">(comma-separated)</span></label>
+          <input type="text" id="selectors" name="selectors" placeholder="#hero, .menu-section" autocomplete="off" />
+        </div>
+
+        <button type="submit" class="shutter" id="submit-btn">
+          <span class="shutter-ring"></span>
+          <span class="shutter-label">Develop</span>
+        </button>
+      </form>
     </section>
 
-    <section id="gallery" hidden>
-      <h2>Results</h2>
-      <a id="download-link" href="#">Download all as zip</a>
+    <section id="progress" class="deck" hidden aria-labelledby="progress-heading">
+      <div class="deck-label">
+        <span class="frame-no">02</span>
+        <h2 id="progress-heading">In the darkroom</h2>
+        <span class="status-lamp" id="status-lamp"></span>
+      </div>
+      <div class="timer-readout">
+        <ol id="progress-log"></ol>
+      </div>
+    </section>
+
+    <section id="gallery" class="deck" hidden aria-labelledby="gallery-heading">
+      <div class="deck-label">
+        <span class="frame-no">03</span>
+        <h2 id="gallery-heading">Contact sheet</h2>
+        <a id="download-link" href="#" class="download-chip" download>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M7 1v8m0 0L3.5 5.5M7 9l3.5-3.5M1.5 11.5h11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Download all
+        </a>
+      </div>
       <div id="gallery-content"></div>
     </section>
   </main>
+
+  <footer class="colophon">
+    <p>Screenshot Taker — crawl, capture, composite. Manifest saved for whatever comes next.</p>
+  </footer>
+
   <script src="app.js"></script>
 </body>
 </html>
