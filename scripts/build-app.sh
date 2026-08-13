@@ -9,6 +9,13 @@ mkdir -p .build-playwright-browsers
 cp -R "$HOME/Library/Caches/ms-playwright/"chromium-* .build-playwright-browsers/ 2>/dev/null || true
 cp -R "$HOME/Library/Caches/ms-playwright/"chromium_headless_shell-* .build-playwright-browsers/ 2>/dev/null || true
 
+if [ -z "$(ls -A .build-playwright-browsers 2>/dev/null)" ]; then
+  echo "Error: no Playwright Chromium found in ~/Library/Caches/ms-playwright." >&2
+  echo "Run 'npx playwright install chromium' first, then retry." >&2
+  rm -rf .build-playwright-browsers
+  exit 1
+fi
+
 npx electron-builder --mac --dir
 
 rm -rf .build-playwright-browsers

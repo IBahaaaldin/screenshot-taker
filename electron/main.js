@@ -6,8 +6,14 @@ if (app.isPackaged) {
   process.env.PLAYWRIGHT_BROWSERS_PATH = path.join(process.resourcesPath, 'playwright-browsers');
 }
 
-import { createApp } from '../src/server.js';
-import { startScheduler } from '../src/scheduler.js';
+// Dynamic imports, not static ones: static `import` declarations are
+// hoisted and evaluate before any statement in this module body runs, so a
+// static import of src/server.js (which pulls in Playwright transitively)
+// would read PLAYWRIGHT_BROWSERS_PATH before the assignment above ever
+// executes. Playwright resolves its browsers directory once at module
+// init, so a static import here would silently ignore the bundled path.
+const { createApp } = await import('../src/server.js');
+const { startScheduler } = await import('../src/scheduler.js');
 
 const PORT = 3000;
 
@@ -38,9 +44,9 @@ async function createWindow() {
     width: 1280,
     height: 900,
     title: 'Screenshot Taker',
-    backgroundColor: '#0a0a0a',
+    backgroundColor: '#f5f5f5',
   });
-  await win.loadURL(`http://localhost:${PORT}`);
+  await win.loadURL(`http://127.0.0.1:${PORT}`);
 }
 
 app.whenReady().then(async () => {
@@ -48,6 +54,8 @@ app.whenReady().then(async () => {
     await startServer();
     await createWindow();
   } catch (err) {
+    console.error('Screenshot Taker failed to start:', err);
+    dialog.showErrorBox('Screenshot Taker failed to start', String(err?.message || err));
     app.quit();
     return;
   }
