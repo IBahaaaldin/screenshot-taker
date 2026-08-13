@@ -383,6 +383,41 @@ function renderGallery(manifest, runId) {
         frame.appendChild(postBtn);
       }
 
+      if (section.splitCrop) {
+        const splitRow = document.createElement('div');
+        splitRow.className = 'split-crop-row';
+
+        for (const [label, imgPath] of [
+          ['top', section.splitCrop.top],
+          ['bottom', section.splitCrop.bottom],
+        ]) {
+          const splitCard = document.createElement('div');
+          splitCard.className = 'split-crop-card';
+
+          const splitImg = document.createElement('img');
+          splitImg.src = toWebPath(imgPath);
+          splitImg.alt = `${section.slug} composite — ${label} half`;
+          splitImg.loading = 'lazy';
+          splitCard.appendChild(splitImg);
+
+          const splitLabel = document.createElement('span');
+          splitLabel.className = 'split-crop-label';
+          splitLabel.textContent = label;
+          splitCard.appendChild(splitLabel);
+
+          const downloadLink = document.createElement('a');
+          downloadLink.href = toWebPath(imgPath);
+          downloadLink.download = '';
+          downloadLink.className = 'split-crop-download';
+          downloadLink.textContent = 'Download';
+          splitCard.appendChild(downloadLink);
+
+          splitRow.appendChild(splitCard);
+        }
+
+        frame.appendChild(splitRow);
+      }
+
       strip.appendChild(frame);
     }
 
