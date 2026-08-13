@@ -702,3 +702,28 @@ select {
   font-size: 12px;
   margin: 0;
 }
+
+.field-checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.field-checkbox input[type="checkbox"] {
+  width: auto;
+  accent-color: var(--safelight);
+}
+
+.field-checkbox span {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--ink-dim);
+}
+
+.queue-scheduled {
+  color: var(--ink-faint);
+  font-size: 12px;
+}

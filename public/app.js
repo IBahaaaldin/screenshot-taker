@@ -56,6 +56,7 @@ form.addEventListener('submit', async (e) => {
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean),
+    autoPost: document.getElementById('autoPost').checked,
   };
   if (sourceType.value === 'url') {
     body.url = sourceValue.value;
@@ -273,6 +274,16 @@ function renderQueue(items) {
 
     row.appendChild(status);
     row.appendChild(label);
+
+    if (item.status === 'queued') {
+      const scheduledMs = Date.parse(item.scheduledFor);
+      if (Number.isFinite(scheduledMs) && scheduledMs > Date.now()) {
+        const when = document.createElement('span');
+        when.className = 'queue-scheduled';
+        when.textContent = `posts ${new Date(scheduledMs).toLocaleString()}`;
+        row.appendChild(when);
+      }
+    }
 
     if (item.status === 'failed' && item.error) {
       const err = document.createElement('span');
