@@ -22,7 +22,7 @@ whatever comes next (e.g. automated posting).
 
 ## Requirements
 
-- Node.js >= 18
+- Node.js >= 20.9.0
 - Google Chrome/Chromium (installed automatically via Playwright)
 
 ## Setup

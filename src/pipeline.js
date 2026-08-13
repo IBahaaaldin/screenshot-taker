@@ -80,8 +80,12 @@ export async function buildCompositesForPage(browser, pageOutputDir, viewportRes
       compositePath = await buildComposite(browser, imagesByViewport, outputPath);
       onProgress({ type: 'composite-done', message: `Composite ready: ${slug}` });
 
-      splitCrop = await splitTopBottom(compositePath, compositesDir);
-      onProgress({ type: 'split-crop-done', message: `Split crop ready: ${slug}` });
+      try {
+        splitCrop = await splitTopBottom(compositePath, compositesDir);
+        onProgress({ type: 'split-crop-done', message: `Split crop ready: ${slug}` });
+      } catch (err) {
+        onProgress({ type: 'split-crop-error', message: `Split crop failed for ${slug}: ${err.message}` });
+      }
     }
 
     sections.push({ slug, viewports: imagesByViewport, composite: compositePath, splitCrop });
