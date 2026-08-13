@@ -4,6 +4,8 @@ import crypto from 'node:crypto';
 import archiver from 'archiver';
 import { runPipeline } from '../pipeline.js';
 import { startLocalServer } from '../localServer.js';
+import { generateCaption } from '../caption.js';
+import { readQueue, writeQueue, createQueueItem, nextScheduledSlot } from '../postQueue.js';
 
 export function createRunRouter({ outputRoot, runs }) {
   const router = express.Router();
@@ -12,7 +14,7 @@ export function createRunRouter({ outputRoot, runs }) {
   const VALID_MODES = new Set(['auto', 'selectors', 'full-page']);
 
   router.post('/run', async (req, res) => {
-    const { url, localFolder, mode, selectors = [], siteName } = req.body || {};
+    const { url, localFolder, mode, selectors = [], siteName, autoPost = false } = req.body || {};
     if (!siteName || !mode || (!url && !localFolder) || (url && localFolder)) {
       res.status(400).json({ error: 'Provide siteName, mode, and exactly one of url/localFolder' });
       return;
@@ -36,7 +38,7 @@ export function createRunRouter({ outputRoot, runs }) {
 
     res.json({ runId });
 
-    executeRun({ runId, url, localFolder, mode, selectors, siteName, outputRoot, runs }).catch((err) => {
+    executeRun({ runId, url, localFolder, mode, selectors, siteName, outputRoot, runs, autoPost }).catch((err) => {
       const run = runs.get(runId);
       run.status = 'error';
       run.events.push({ type: 'error', message: err.message });
@@ -104,7 +106,7 @@ export function createRunRouter({ outputRoot, runs }) {
   return router;
 }
 
-async function executeRun({ runId, url, localFolder, mode, selectors, siteName, outputRoot, runs }) {
+async function executeRun({ runId, url, localFolder, mode, selectors, siteName, outputRoot, runs, autoPost }) {
   const run = runs.get(runId);
   let localServer = null;
   let startUrl = url;
@@ -121,7 +123,47 @@ async function executeRun({ runId, url, localFolder, mode, selectors, siteName, 
     );
     run.manifest = manifest;
     run.status = 'done';
+
+    if (autoPost) {
+      await autoQueueManifest(manifest, { outputRoot, onProgress: (event) => run.events.push(event) });
+    }
   } finally {
     if (localServer) await localServer.close();
   }
+}
+
+async function autoQueueManifest(manifest, { outputRoot, onProgress }) {
+  const igUserId = process.env.IG_BUSINESS_ACCOUNT_ID;
+  const accessToken = process.env.IG_ACCESS_TOKEN;
+  if (!igUserId || !accessToken) {
+    onProgress({
+      type: 'auto-post-skipped',
+      message: 'Instagram is not configured — set IG_BUSINESS_ACCOUNT_ID and IG_ACCESS_TOKEN in .env to enable auto-posting',
+    });
+    return;
+  }
+
+  const intervalHours = Number(process.env.SCHEDULE_INTERVAL_HOURS) || 24;
+  const queueFilePath = path.join(outputRoot, 'post-queue.json');
+  const queue = await readQueue(queueFilePath);
+
+  for (const page of manifest.pages) {
+    for (const section of page.sections) {
+      if (!section.composite) continue;
+      const caption = generateCaption({ siteName: manifest.site, pageUrl: page.url, slug: section.slug });
+      const scheduledFor = nextScheduledSlot(queue, intervalHours);
+      const item = createQueueItem({
+        siteName: manifest.site,
+        pageUrl: page.url,
+        kind: 'single',
+        images: [section.composite],
+        caption,
+        scheduledFor,
+      });
+      queue.items.push(item);
+      onProgress({ type: 'auto-post-queued', message: `Queued ${section.slug} for ${scheduledFor}` });
+    }
+  }
+
+  await writeQueue(queueFilePath, queue);
 }
