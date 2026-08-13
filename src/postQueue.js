@@ -2,6 +2,32 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
 
+// All mutations of a given post-queue.json (appends from the create-queue-item
+// route, autoQueueManifest's bulk append, and postingService's posting logic)
+// must go through this shared lock, keyed by queue file path. Without it, two
+// overlapping read-modify-write cycles on the same file can race: whichever
+// call's in-memory snapshot is stale by the time it writes will silently
+// clobber the other call's changes (a lost append, or worse, a reverted
+// status). Keying by path costs nothing today (there's only one queue file
+// per outputRoot) and is correct if that ever changes.
+const queueLocks = new Map();
+
+export async function withQueueLock(queueFilePath, fn) {
+  const prior = queueLocks.get(queueFilePath) ?? Promise.resolve();
+  const run = () => fn();
+  const result = prior.then(run, run);
+  // Always leave the map holding a settled-tracking promise so a rejection
+  // from this holder never wedges the lock for the next one.
+  queueLocks.set(
+    queueFilePath,
+    result.then(
+      () => {},
+      () => {}
+    )
+  );
+  return result;
+}
+
 export async function readQueue(queueFilePath) {
   try {
     const raw = await fs.readFile(queueFilePath, 'utf8');

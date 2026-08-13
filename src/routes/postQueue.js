@@ -1,6 +1,6 @@
 import express from 'express';
 import path from 'node:path';
-import { readQueue, writeQueue, createQueueItem } from '../postQueue.js';
+import { readQueue, writeQueue, createQueueItem, withQueueLock } from '../postQueue.js';
 import { postQueueItem } from '../postingService.js';
 
 export function createPostQueueRouter({ outputRoot, deps = {} }) {
@@ -41,9 +41,11 @@ export function createPostQueueRouter({ outputRoot, deps = {} }) {
       }
 
       const item = createQueueItem({ siteName, pageUrl, kind, images, caption });
-      const queue = await readQueue(queueFilePath);
-      queue.items.push(item);
-      await writeQueue(queueFilePath, queue);
+      await withQueueLock(queueFilePath, async () => {
+        const queue = await readQueue(queueFilePath);
+        queue.items.push(item);
+        await writeQueue(queueFilePath, queue);
+      });
 
       const result = await postQueueItem(item.id, {
         igUserId,

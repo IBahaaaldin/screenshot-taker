@@ -237,3 +237,59 @@ test('postQueueItem serializes concurrent calls so overlapping writes cannot sto
 
   await fs.rm(dir, { recursive: true, force: true });
 });
+
+test('postQueueItem: two concurrent calls for the SAME item id post exactly once (Residual B)', async () => {
+  // Simulates overlapping scheduler ticks (or a manual "Post now" racing the
+  // scheduler) both picking the same still-'queued'-looking item before the
+  // first call's 'posting' write has landed. Only the first call — now that
+  // both share the queue-file lock — should ever reach postSingleImageFn;
+  // the second must see the already-updated status and no-op.
+  const item = createQueueItem({
+    siteName: 'site-dup',
+    pageUrl: 'https://example.com/dup.html',
+    kind: 'single',
+    images: ['/output/site-dup/dup-html/composites/section-0-composite.png'],
+    caption: 'dup',
+  });
+  const { dir, queueFilePath } = await withTempQueue([item]);
+
+  const startLocalServerFn = async () => ({ url: 'http://127.0.0.1:9999', close: async () => {} });
+  const startTunnelFn = async () => ({ url: 'https://fake.loca.lt', close: async () => {} });
+  let callCount = 0;
+  const postSingleImageFn = async () => {
+    callCount += 1;
+    // Artificial delay to force a realistic overlap window between the two
+    // concurrent calls targeting the same item id.
+    await new Promise((r) => setTimeout(r, 50));
+    return 'media-dup';
+  };
+
+  const options = {
+    igUserId: 'IGUSER',
+    accessToken: 'TOKEN',
+    outputRoot: '/output/site-dup',
+    queueFilePath,
+    startLocalServerFn,
+    startTunnelFn,
+    postSingleImageFn,
+  };
+
+  const [resultA, resultB] = await Promise.all([
+    postQueueItem(item.id, options),
+    postQueueItem(item.id, options),
+  ]);
+
+  assert.equal(callCount, 1, 'postSingleImageFn should have been called exactly once');
+  // One of the two results is the actual posted item; the other is the
+  // no-op return of the same (by-then-posted) item.
+  assert.equal(resultA.status, 'posted');
+  assert.equal(resultB.status, 'posted');
+  assert.equal(resultA.igMediaId, 'media-dup');
+  assert.equal(resultB.igMediaId, 'media-dup');
+
+  const onDisk = await readQueue(queueFilePath);
+  assert.equal(onDisk.items[0].status, 'posted');
+  assert.equal(onDisk.items[0].igMediaId, 'media-dup');
+
+  await fs.rm(dir, { recursive: true, force: true });
+});

@@ -5,7 +5,7 @@ import archiver from 'archiver';
 import { runPipeline } from '../pipeline.js';
 import { startLocalServer } from '../localServer.js';
 import { generateCaption } from '../caption.js';
-import { readQueue, writeQueue, createQueueItem, nextScheduledSlot } from '../postQueue.js';
+import { readQueue, writeQueue, createQueueItem, nextScheduledSlot, withQueueLock } from '../postQueue.js';
 
 export function createRunRouter({ outputRoot, runs }) {
   const router = express.Router();
@@ -122,7 +122,6 @@ async function executeRun({ runId, url, localFolder, mode, selectors, siteName, 
       (event) => run.events.push(event)
     );
     run.manifest = manifest;
-    run.status = 'done';
 
     if (autoPost) {
       try {
@@ -132,6 +131,16 @@ async function executeRun({ runId, url, localFolder, mode, selectors, siteName, 
         run.events.push({ type: 'auto-post-error', message: `Auto-posting failed: ${err.message}` });
       }
     }
+
+    // Set status 'done' only after autoQueueManifest has fully landed (or
+    // failed and been isolated above) — the SSE progress endpoint emits
+    // manifest-ready as soon as run.status !== 'running', so setting this
+    // any earlier lets the frontend refresh the queue before the auto-queued
+    // items are actually written to disk. The try/catch above already
+    // isolates autoQueueManifest's errors from the outer .catch regardless
+    // of where this assignment sits, so moving it here only fixes the
+    // timing — it doesn't reintroduce the earlier error-isolation bug.
+    run.status = 'done';
   } finally {
     if (localServer) await localServer.close();
   }
@@ -150,25 +159,28 @@ async function autoQueueManifest(manifest, { outputRoot, onProgress }) {
 
   const intervalHours = Number(process.env.SCHEDULE_INTERVAL_HOURS) || 24;
   const queueFilePath = path.join(outputRoot, 'post-queue.json');
-  const queue = await readQueue(queueFilePath);
 
-  for (const page of manifest.pages) {
-    for (const section of page.sections) {
-      if (!section.composite) continue;
-      const caption = generateCaption({ siteName: manifest.site, pageUrl: page.url, slug: section.slug });
-      const scheduledFor = nextScheduledSlot(queue, intervalHours);
-      const item = createQueueItem({
-        siteName: manifest.site,
-        pageUrl: page.url,
-        kind: 'single',
-        images: [section.composite],
-        caption,
-        scheduledFor,
-      });
-      queue.items.push(item);
-      onProgress({ type: 'auto-post-queued', message: `Queued ${section.slug} for ${scheduledFor}` });
+  await withQueueLock(queueFilePath, async () => {
+    const queue = await readQueue(queueFilePath);
+
+    for (const page of manifest.pages) {
+      for (const section of page.sections) {
+        if (!section.composite) continue;
+        const caption = generateCaption({ siteName: manifest.site, pageUrl: page.url, slug: section.slug });
+        const scheduledFor = nextScheduledSlot(queue, intervalHours);
+        const item = createQueueItem({
+          siteName: manifest.site,
+          pageUrl: page.url,
+          kind: 'single',
+          images: [section.composite],
+          caption,
+          scheduledFor,
+        });
+        queue.items.push(item);
+        onProgress({ type: 'auto-post-queued', message: `Queued ${section.slug} for ${scheduledFor}` });
+      }
     }
-  }
 
-  await writeQueue(queueFilePath, queue);
+    await writeQueue(queueFilePath, queue);
+  });
 }

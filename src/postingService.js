@@ -1,27 +1,18 @@
 import path from 'node:path';
-import { readQueue, writeQueue, countPostsInLast24h } from './postQueue.js';
+import { readQueue, writeQueue, countPostsInLast24h, withQueueLock } from './postQueue.js';
 import { postSingleImage, postCarousel } from './instagram.js';
 import { startTunnel } from './tunnel.js';
 import { startLocalServer } from './localServer.js';
 
-// The scheduler and the manual-post route both call postQueueItem in the same
-// process, and each call does a slow (tunnel + Graph API) read-modify-write of
-// the whole post-queue.json file. If two calls overlapped, the second call's
-// finally-block write could stomp on the first call's write with a stale
-// in-memory snapshot — including reverting an already-`posted` item back to
-// `queued`, which could then get posted to Instagram a second time. Chaining
-// every call onto a shared promise serializes the whole read-modify-write
-// cycle so no two calls' file I/O can interleave.
-let writeLock = Promise.resolve();
-
+// The scheduler, the manual "Post now" flow, and any other appender of
+// post-queue.json (the create-queue-item route, autoQueueManifest) all share
+// the SAME lock — withQueueLock, keyed by queue file path, from postQueue.js.
+// It is the only lock in the system: every read-modify-write of the queue
+// file, whether it's appending a new item or posting an existing one, is
+// serialized through it so none of those operations can interleave and
+// silently clobber each other's writes.
 export async function postQueueItem(itemId, options) {
-  const run = () => postQueueItemImpl(itemId, options);
-  const result = writeLock.then(run, run);
-  writeLock = result.then(
-    () => {},
-    () => {}
-  );
-  return result;
+  return withQueueLock(options.queueFilePath, () => postQueueItemImpl(itemId, options));
 }
 
 async function postQueueItemImpl(
@@ -41,6 +32,15 @@ async function postQueueItemImpl(
   const item = queue.items.find((i) => i.id === itemId);
   if (!item) {
     throw new Error(`Queue item ${itemId} not found`);
+  }
+
+  // Now that we're inside the shared lock and have a fresh read of the queue,
+  // re-check status before doing anything else. If two calls ever targeted
+  // the same item id, only the first (now properly serialized) call sees
+  // 'queued' here; a second call sees whatever the first call already wrote
+  // (posting/posted/failed) and must no-op rather than post again.
+  if (item.status !== 'queued') {
+    return item;
   }
 
   if (countPostsInLast24h(queue) >= 25) {
