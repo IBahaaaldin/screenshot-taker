@@ -2,6 +2,7 @@ import path from 'node:path';
 import { readQueue, writeQueue, countPostsInLast24h } from './postQueue.js';
 import { postSingleImage, postCarousel } from './instagram.js';
 import { startTunnel } from './tunnel.js';
+import { startLocalServer } from './localServer.js';
 
 export async function postQueueItem(
   itemId,
@@ -9,11 +10,11 @@ export async function postQueueItem(
     igUserId,
     accessToken,
     outputRoot,
-    port,
     queueFilePath,
     postSingleImageFn = postSingleImage,
     postCarouselFn = postCarousel,
     startTunnelFn = startTunnel,
+    startLocalServerFn = startLocalServer,
   }
 ) {
   const queue = await readQueue(queueFilePath);
@@ -33,8 +34,11 @@ export async function postQueueItem(
   await writeQueue(queueFilePath, queue);
 
   let tunnel;
+  let localServer;
   try {
-    tunnel = await startTunnelFn(port);
+    localServer = await startLocalServerFn(outputRoot);
+    const localPort = new URL(localServer.url).port;
+    tunnel = await startTunnelFn(localPort);
     const imageUrls = item.images.map((imagePath) => toPublicUrl(imagePath, outputRoot, tunnel.url));
 
     const igMediaId =
@@ -51,6 +55,7 @@ export async function postQueueItem(
     item.error = err.message;
   } finally {
     if (tunnel) await tunnel.close();
+    if (localServer) await localServer.close();
     await writeQueue(queueFilePath, queue);
   }
 
@@ -59,5 +64,5 @@ export async function postQueueItem(
 
 function toPublicUrl(absoluteImagePath, outputRoot, tunnelUrl) {
   const relative = path.relative(outputRoot, absoluteImagePath).split(path.sep).join('/');
-  return `${tunnelUrl}/output/${relative}`;
+  return `${tunnelUrl}/${relative}`;
 }

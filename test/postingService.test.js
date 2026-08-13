@@ -23,11 +23,15 @@ test('postQueueItem posts a single image and records success', async () => {
   });
   const { dir, queueFilePath } = await withTempQueue([item]);
 
-  const startTunnelFn = async () => ({ url: 'https://fake.loca.lt', close: async () => {} });
+  const startLocalServerFn = async () => ({ url: 'http://127.0.0.1:9999', close: async () => {} });
+  const startTunnelFn = async (port) => {
+    assert.equal(port, '9999');
+    return { url: 'https://fake.loca.lt', close: async () => {} };
+  };
   const postSingleImageFn = async ({ imageUrl, caption }) => {
     assert.equal(
       imageUrl,
-      'https://fake.loca.lt/output/index-html/composites/section-0-composite.png'
+      'https://fake.loca.lt/index-html/composites/section-0-composite.png'
     );
     assert.equal(caption, 'hi');
     return 'media-1';
@@ -37,8 +41,8 @@ test('postQueueItem posts a single image and records success', async () => {
     igUserId: 'IGUSER',
     accessToken: 'TOKEN',
     outputRoot: '/output/baba-ganoush',
-    port: 3000,
     queueFilePath,
+    startLocalServerFn,
     startTunnelFn,
     postSingleImageFn,
   });
@@ -67,7 +71,11 @@ test('postQueueItem posts a carousel using postCarouselFn', async () => {
   });
   const { dir, queueFilePath } = await withTempQueue([item]);
 
-  const startTunnelFn = async () => ({ url: 'https://fake.loca.lt', close: async () => {} });
+  const startLocalServerFn = async () => ({ url: 'http://127.0.0.1:9999', close: async () => {} });
+  const startTunnelFn = async (port) => {
+    assert.equal(port, '9999');
+    return { url: 'https://fake.loca.lt', close: async () => {} };
+  };
   const postCarouselFn = async ({ imageUrls }) => {
     assert.equal(imageUrls.length, 2);
     return 'media-carousel-1';
@@ -77,8 +85,8 @@ test('postQueueItem posts a carousel using postCarouselFn', async () => {
     igUserId: 'IGUSER',
     accessToken: 'TOKEN',
     outputRoot: '/output/baba-ganoush',
-    port: 3000,
     queueFilePath,
+    startLocalServerFn,
     startTunnelFn,
     postCarouselFn,
   });
@@ -100,6 +108,7 @@ test('postQueueItem marks the item failed and always closes the tunnel on error'
   const { dir, queueFilePath } = await withTempQueue([item]);
 
   let closed = false;
+  const startLocalServerFn = async () => ({ url: 'http://127.0.0.1:9999', close: async () => {} });
   const startTunnelFn = async () => ({
     url: 'https://fake.loca.lt',
     close: async () => {
@@ -114,8 +123,8 @@ test('postQueueItem marks the item failed and always closes the tunnel on error'
     igUserId: 'IGUSER',
     accessToken: 'TOKEN',
     outputRoot: '/output/baba-ganoush',
-    port: 3000,
     queueFilePath,
+    startLocalServerFn,
     startTunnelFn,
     postSingleImageFn,
   });
@@ -158,7 +167,6 @@ test('postQueueItem refuses to post past the 25/24h rate limit without starting 
     igUserId: 'IGUSER',
     accessToken: 'TOKEN',
     outputRoot: '/output/baba-ganoush',
-    port: 3000,
     queueFilePath,
     startTunnelFn,
   });

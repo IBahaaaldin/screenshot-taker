@@ -13,6 +13,7 @@ test('end-to-end: run the pipeline, then post a resulting composite to Instagram
   const outputRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ig-e2e-test-'));
   const postSingleImageCalls = [];
   const postQueueDeps = {
+    startLocalServerFn: async () => ({ url: 'http://127.0.0.1:9999', close: async () => {} }),
     startTunnelFn: async () => ({ url: 'https://fake.loca.lt', close: async () => {} }),
     postSingleImageFn: async (args) => {
       postSingleImageCalls.push(args);
@@ -73,7 +74,7 @@ test('end-to-end: run the pipeline, then post a resulting composite to Instagram
 
   assert.equal(postSingleImageCalls.length, 1);
   assert.equal(postSingleImageCalls[0].caption, 'end-to-end test caption');
-  assert.ok(postSingleImageCalls[0].imageUrl.startsWith('https://fake.loca.lt/output/'));
+  assert.ok(postSingleImageCalls[0].imageUrl.startsWith('https://fake.loca.lt/'));
 
   const listRes = await fetch(`${base}/api/queue`);
   const { items } = await listRes.json();
