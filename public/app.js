@@ -301,16 +301,20 @@ function renderGallery(manifest, runId) {
 
     const pageComposites = page.sections.filter((s) => s.composite).map((s) => s.composite);
     if (pageComposites.length > 1) {
+      const carouselImages = pageComposites.slice(0, 10);
       const carouselBtn = document.createElement('button');
       carouselBtn.type = 'button';
       carouselBtn.className = 'page-carousel-btn';
-      carouselBtn.textContent = `Post all ${pageComposites.length} as carousel`;
+      carouselBtn.textContent =
+        pageComposites.length > 10
+          ? `Post first 10 of ${pageComposites.length} as carousel`
+          : `Post all ${pageComposites.length} as carousel`;
       carouselBtn.addEventListener('click', () =>
         openCaptionModal({
           siteName: manifest.site,
           pageUrl: page.url,
           kind: 'carousel',
-          images: pageComposites,
+          images: carouselImages,
           slugForDraft: page.sections[0].slug,
         })
       );
