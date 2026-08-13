@@ -50,17 +50,19 @@ test('buildComposite renders a PNG containing all provided viewports', async () 
         canvas.height = img.naturalHeight;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0);
-        // Sample a point well inside the first (desktop) frame's bezel area,
-        // and a point well inside the second (mobile) frame's bezel area.
-        // These coordinates are derived from the known canvas layout: two
-        // frames centered with a 40px gap on a 2000x1200 canvas.
+        // Sample a point well inside the desktop monitor's screen area, and
+        // a point well inside the mobile phone's screen area. Coordinates
+        // are derived from src/composite.js's LAYOUT constants (desktop:
+        // x120 y140 w980 h610; mobile: x1620 y660 w190 h400) — each point
+        // sits safely inside that device's screen and outside every other
+        // device's bounding box in the overlapping hero-mockup layout.
         const sample = (x, y) => {
           const d = ctx.getImageData(x, y, 1, 1).data;
           return [d[0], d[1], d[2]];
         };
         return {
-          desktopArea: sample(700, 600),
-          mobileArea: sample(1300, 600),
+          desktopArea: sample(600, 400),
+          mobileArea: sample(1715, 850),
         };
       }, compositeDataUrl);
 
