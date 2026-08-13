@@ -6,3 +6,4 @@ output/
 .env.local
 assets/icon.iconset/
 dist/
+.build-playwright-browsers/

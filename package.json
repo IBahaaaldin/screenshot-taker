@@ -5,6 +5,7 @@
   "license": "MIT",
   "private": true,
   "type": "module",
+  "main": "electron/main.js",
   "engines": {
     "node": ">=20.9.0"
   },
@@ -36,7 +37,7 @@
     "files": ["src/**/*", "public/**/*", "electron/**/*", "package.json"],
     "extraResources": [
       {
-        "from": "${env.HOME}/Library/Caches/ms-playwright",
+        "from": ".build-playwright-browsers",
         "to": "playwright-browsers",
         "filter": ["chromium-*/**", "chromium_headless_shell-*/**"]
       }
