@@ -9,13 +9,13 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 loadEnvFile(path.join(__dirname, '..', '.env'));
 
-export function createApp({ outputRoot = path.join(__dirname, '..', 'output') } = {}) {
+export function createApp({ outputRoot = path.join(__dirname, '..', 'output'), postQueueDeps = {} } = {}) {
   const app = express();
   const runs = new Map();
 
   app.use(express.json());
   app.use('/api', createRunRouter({ outputRoot, runs }));
-  app.use('/api', createPostQueueRouter({ outputRoot }));
+  app.use('/api', createPostQueueRouter({ outputRoot, deps: postQueueDeps }));
   app.use('/output', express.static(outputRoot));
   app.use(express.static(path.join(__dirname, '..', 'public')));
 
