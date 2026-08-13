@@ -69,77 +69,93 @@ function renderHtml(entries, dataUrls) {
   .screen { overflow: hidden; background: #050505; }
   .screen img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
 
-  /* Desktop monitor: screen + neck + weighted base */
+  /* Desktop: Apple Studio Display — near-borderless screen, no chin,
+     single center arm mount, small flat foot. */
   .desktop-bezel {
     width: 100%; height: 100%;
-    border-radius: 14px;
-    border: 14px solid #1c1c1e;
-    background: #1c1c1e;
+    border-radius: 16px;
+    border: 7px solid #d9dadc;
+    background: linear-gradient(155deg, #eceeef, #cfd1d3);
   }
-  .desktop-bezel .screen { border-radius: 3px; height: 100%; }
-  .desktop-neck {
-    position: absolute; left: 50%; bottom: -46px; transform: translateX(-50%);
-    width: 90px; height: 50px;
-    background: linear-gradient(180deg, #232326, #17171a);
-    clip-path: polygon(20% 0%, 80% 0%, 100% 100%, 0% 100%);
+  .desktop-bezel .screen { border-radius: 9px; height: 100%; }
+  .desktop-arm {
+    position: absolute; left: 50%; bottom: -64px; transform: translateX(-50%);
+    width: 46px; height: 64px;
+    background: linear-gradient(90deg, #b9bbbd, #e7e8ea 45%, #b9bbbd);
+    border-radius: 4px;
   }
   .desktop-base {
-    position: absolute; left: 50%; bottom: -60px; transform: translateX(-50%);
-    width: 260px; height: 16px; border-radius: 999px;
-    background: linear-gradient(180deg, #29292c, #131315);
+    position: absolute; left: 50%; bottom: -76px; transform: translateX(-50%);
+    width: 220px; height: 14px; border-radius: 7px;
+    background: linear-gradient(180deg, #dcdddf, #b6b8ba);
   }
 
-  /* Laptop: screen bezel + angled keyboard deck */
+  /* Laptop: MacBook Pro — screen notch, thin silver bezel, rounded top
+     corners, aluminum keyboard deck with a hinge seam. */
   .laptop-bezel {
     width: 100%; height: 100%;
-    border-radius: 12px 12px 3px 3px;
-    border: 12px solid #1e1e20;
-    border-bottom-width: 6px;
-    background: #1e1e20;
+    border-radius: 18px 18px 4px 4px;
+    border: 9px solid #2b2c2e;
+    border-bottom-width: 3px;
+    background: #2b2c2e;
+    position: relative;
   }
-  .laptop-bezel .screen { border-radius: 2px; height: 100%; }
+  .laptop-bezel .screen { border-radius: 10px 10px 2px 2px; height: 100%; position: relative; }
+  .laptop-notch {
+    position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    width: 13%; height: 20px; border-radius: 0 0 10px 10px;
+    background: #050505; z-index: 2;
+  }
   .laptop-deck {
-    position: absolute; left: 50%; bottom: -26px; transform: translateX(-50%);
-    width: 116%; height: 26px;
-    background: linear-gradient(180deg, #313134, #1a1a1c);
-    border-radius: 0 0 10px 10px;
+    position: absolute; left: 50%; bottom: -22px; transform: translateX(-50%);
+    width: 122%; height: 22px;
+    background: linear-gradient(180deg, #e4e5e7, #b9bbbd);
+    border-radius: 0 0 14px 14px;
+  }
+  .laptop-deck::before {
+    content: '';
+    position: absolute; left: 0; top: 0; width: 100%; height: 3px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.25), transparent);
   }
   .laptop-deck::after {
     content: '';
-    position: absolute; left: 50%; top: 0; transform: translateX(-50%);
-    width: 90px; height: 6px; border-radius: 0 0 6px 6px;
-    background: #0e0e0f;
+    position: absolute; left: 50%; top: 5px; transform: translateX(-50%);
+    width: 15%; height: 5px; border-radius: 3px;
+    background: #9a9c9e;
   }
 
-  /* Tablet: thick uniform bezel + camera dot */
+  /* Tablet: iPad Pro — ultra-thin uniform bezel, large corner radius,
+     brushed-aluminum edge, centered camera. */
   .tablet-bezel {
     width: 100%; height: 100%;
-    border-radius: 26px;
-    border: 16px solid #1e1e20;
-    background: #1e1e20;
+    border-radius: 22px;
+    border: 8px solid #d3d4d6;
+    background: linear-gradient(155deg, #e7e8ea, #c3c5c7);
     position: relative;
   }
-  .tablet-bezel .screen { border-radius: 4px; height: 100%; }
+  .tablet-bezel .screen { border-radius: 14px; height: 100%; }
   .tablet-bezel::before {
     content: '';
-    position: absolute; top: 5px; left: 50%; transform: translateX(-50%);
-    width: 6px; height: 6px; border-radius: 50%;
-    background: #3a3a3d;
+    position: absolute; top: 3px; left: 50%; transform: translateX(-50%);
+    width: 5px; height: 5px; border-radius: 50%;
+    background: #16171a; box-shadow: 0 0 0 2px rgba(0,0,0,0.08);
+    z-index: 2;
   }
 
-  /* Phone: thick bezel + notch + home indicator */
+  /* Phone: iPhone — Dynamic Island, titanium frame, large corner radius,
+     bottom home indicator. */
   .mobile-bezel {
     width: 100%; height: 100%;
-    border-radius: 34px;
-    border: 12px solid #1e1e20;
-    background: #1e1e20;
+    border-radius: 42px;
+    border: 6px solid #948d84;
+    background: linear-gradient(155deg, #a79f95, #857d73);
     position: relative;
   }
-  .mobile-bezel .screen { border-radius: 20px; height: 100%; position: relative; }
-  .mobile-notch {
-    position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-    width: 76px; height: 22px; border-radius: 0 0 14px 14px;
-    background: #0d0d0e; z-index: 2;
+  .mobile-bezel .screen { border-radius: 36px; height: 100%; position: relative; }
+  .mobile-island {
+    position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+    width: 34%; height: 20px; border-radius: 999px;
+    background: #050505; z-index: 2;
   }
   .mobile-home {
     position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
@@ -161,14 +177,17 @@ function frameHtml(name, dataUrl) {
   if (name === 'desktop') {
     return `<div class="device" style="${style}">
       <div class="desktop-bezel"><div class="screen"><img src="${dataUrl}" /></div></div>
-      <div class="desktop-neck"></div>
+      <div class="desktop-arm"></div>
       <div class="desktop-base"></div>
     </div>`;
   }
 
   if (name === 'laptop') {
     return `<div class="device" style="${style}">
-      <div class="laptop-bezel"><div class="screen"><img src="${dataUrl}" /></div></div>
+      <div class="laptop-bezel">
+        <div class="laptop-notch"></div>
+        <div class="screen"><img src="${dataUrl}" /></div>
+      </div>
       <div class="laptop-deck"></div>
     </div>`;
   }
@@ -182,7 +201,7 @@ function frameHtml(name, dataUrl) {
   // mobile
   return `<div class="device" style="${style}">
     <div class="mobile-bezel">
-      <div class="mobile-notch"></div>
+      <div class="mobile-island"></div>
       <div class="screen"><img src="${dataUrl}" /></div>
       <div class="mobile-home"></div>
     </div>
