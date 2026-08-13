@@ -120,7 +120,7 @@ form.addEventListener('submit', async (e) => {
         logLine('error', 'Run failed — no output was generated.');
         setStatusLamp('failed');
       }
-      refreshQueue();
+      refreshQueue().catch(() => {});
       return;
     }
 
