@@ -47,3 +47,40 @@ empirically, 9/10 trials failed) — fixed with crypto.randomUUID().
 Real Instagram posting (an actual post landing on a real account) is a
 manual step for the user — needs their own Meta developer app + access
 token, which nothing in this codebase can obtain on its own.
+
+## 2026-08-13 — Instagram auto-posting Phase 2 (automation) shipped
+Built on top of Phase 1's manual posting: an `autoPost` flag on a run
+auto-queues every captured section with a spaced `scheduledFor` (default
+24h apart, via SCHEDULE_INTERVAL_HOURS), and a background scheduler
+(started only when `node src/server.js` actually boots, never in tests,
+never without IG credentials configured) posts at most one due item every
+15 minutes.
+
+Final review found a genuine concurrency bug: the scheduler and a manual
+"Post now" click run in the same process and could overlap during a real
+post (which takes real time — tunnel setup + Graph API polling), so the
+first read-modify-write cycle to finish could stomp the other's write to
+post-queue.json. Worst case: an item already published to the real
+Instagram account could get reverted to "queued" on disk and posted a
+second time by the next tick.
+
+First fix attempt (a lock local to postingService.js) was too narrow —
+two OTHER call sites (the manual-post route's item-creation append, and
+autoQueueManifest's bulk append after an autoPost run) mutated the same
+file outside that lock. Re-review empirically reproduced both: an append
+racing an in-flight post got silently erased, and two overlapping
+scheduler ticks could both actually publish the same item to Instagram
+twice. Root-caused to "the lock lives in the wrong module" — fixed
+properly by moving to one shared `withQueueLock(queueFilePath, fn)` in
+postQueue.js, used by literally every mutator (route append,
+autoQueueManifest append, and the actual posting logic), plus a
+status-recheck after acquiring the lock so a no-longer-queued item is
+never re-posted. Independently re-verified via adversarial repro scripts
+against both the broken and fixed versions — regressions reproduced
+pre-fix, could not be reproduced post-fix across many timing variants.
+
+This is the kind of bug that's easy to miss in a single-threaded mental
+model ("it's just Node, nothing runs at the same time") but very real
+once you have a background timer and a human both able to trigger the
+same write path — worth remembering for any future feature that adds a
+second, unattended writer to state a human-triggered path also mutates.
