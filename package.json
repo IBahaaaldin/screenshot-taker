@@ -5,12 +5,15 @@
   "license": "MIT",
   "private": true,
   "type": "module",
+  "main": "electron/main.js",
   "engines": {
     "node": ">=20.9.0"
   },
   "scripts": {
     "start": "node src/server.js",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "electron": "electron electron/main.js",
+    "dist": "bash scripts/build-app.sh"
   },
   "dependencies": {
     "archiver": "^7.0.1",
@@ -18,5 +21,26 @@
     "localtunnel": "^2.0.2",
     "playwright": "^1.47.0",
     "sharp": "^0.35.3"
+  },
+  "devDependencies": {
+    "electron": "^43.4.0",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "com.screenshot-taker.app",
+    "productName": "Screenshot Taker",
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "icon": "assets/icon.icns",
+      "target": "dir"
+    },
+    "files": ["src/**/*", "public/**/*", "electron/**/*", "package.json"],
+    "extraResources": [
+      {
+        "from": ".build-playwright-browsers",
+        "to": "playwright-browsers",
+        "filter": ["chromium-*/**", "chromium_headless_shell-*/**"]
+      }
+    ]
   }
 }

@@ -4,3 +4,6 @@ output/
 .worktrees/
 .env
 .env.local
+assets/icon.iconset/
+dist/
+.build-playwright-browsers/
