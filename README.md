@@ -104,6 +104,28 @@ is closed automatically as soon as posting finishes or fails. Note that
 localtunnel is a third-party service: it can see the traffic passing through
 the tunnel it creates for you.
 
+### Auto-post (unattended scheduling)
+
+The run form has an **Auto-post** checkbox. When checked (and Instagram is
+configured — see above), every section screenshotted in that run is
+automatically queued for posting instead of waiting for you to click Post on
+each one individually.
+
+- **Unattended posting**: a background scheduler runs inside the app process
+  and ticks every 15 minutes, checking the queue for anything due and posting
+  at most one item per tick. It only starts if `IG_BUSINESS_ACCOUNT_ID` and
+  `IG_ACCESS_TOKEN` are set. This means the "temporary public tunnel"
+  described above now happens automatically and unattended — every time the
+  scheduler posts a due item, it opens the same short-lived localtunnel URL,
+  just without a human present to notice it happening.
+- **Queuing math**: auto-queued items are spaced `SCHEDULE_INTERVAL_HOURS`
+  apart (default 24 — see `.env.example`). If a run produces N sections, the
+  last one won't post until roughly `N x SCHEDULE_INTERVAL_HOURS` after the
+  first. A second auto-post run against the same site doesn't post
+  concurrently with the first — its items are queued to start *after* the
+  first run's last already-queued item, so a busy site can end up with a long
+  backlog. Check the Queue panel to see each item's `scheduledFor` time.
+
 ## License
 
 MIT
