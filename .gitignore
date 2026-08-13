@@ -2,3 +2,5 @@ node_modules/
 output/
 *.log
 .worktrees/
+.env
+.env.local
