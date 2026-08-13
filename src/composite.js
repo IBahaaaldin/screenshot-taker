@@ -122,7 +122,7 @@ function renderHtml(entries, dataUrls) {
   .tablet-bezel .screen { border-radius: 4px; height: 100%; }
   .tablet-bezel::before {
     content: '';
-    position: absolute; top: -9px; left: 50%; transform: translateX(-50%);
+    position: absolute; top: 5px; left: 50%; transform: translateX(-50%);
     width: 6px; height: 6px; border-radius: 50%;
     background: #3a3a3d;
   }

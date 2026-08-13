@@ -66,11 +66,18 @@ test('buildComposite renders a PNG containing all provided viewports', async () 
         };
       }, compositeDataUrl);
 
-      const bezelColor = [17, 17, 17]; // #111
+      // Bezel/background colors from src/composite.js's stylesheet — none of
+      // these should appear at a sample point that's genuinely inside a
+      // device's screen area.
+      const nonContentColors = [
+        [28, 28, 30], // #1c1c1e desktop bezel
+        [30, 30, 32], // #1e1e20 laptop/tablet/mobile bezel
+        [5, 5, 5], // #050505 canvas background
+      ];
       const isBezel = (rgb) =>
-        Math.abs(rgb[0] - bezelColor[0]) < 5 &&
-        Math.abs(rgb[1] - bezelColor[1]) < 5 &&
-        Math.abs(rgb[2] - bezelColor[2]) < 5;
+        nonContentColors.some(
+          (c) => Math.abs(rgb[0] - c[0]) < 5 && Math.abs(rgb[1] - c[1]) < 5 && Math.abs(rgb[2] - c[2]) < 5
+        );
 
       assert.ok(
         !isBezel(pixels.desktopArea),
