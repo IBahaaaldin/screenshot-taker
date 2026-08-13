@@ -2,8 +2,10 @@
 
 Point it at a website — a live URL or a local project folder — and it crawls every page,
 screenshots every section at 4 device viewports, and builds ready-to-post composite
-mockup images (desktop / laptop / tablet / mobile side by side). No more manually
-resizing your browser and cropping screenshots for every section of every page.
+mockup images (desktop / laptop / tablet / mobile overlapped in one hero shot, styled
+after real current Apple hardware — Studio Display, MacBook Pro, iPad Pro, iPhone). No
+more manually resizing your browser and cropping screenshots for every section of every
+page.
 
 ## What it does
 
@@ -13,9 +15,11 @@ resizing your browser and cropping screenshots for every section of every page.
    selectors, or just capture the full page).
 3. **Screenshot** — captures every section at Desktop (1920px), Laptop (1440px),
    Tablet (768px), and Mobile (390px).
-4. **Composite** — builds one framed mockup image per section, with all 4 viewports
-   arranged together — the same style you'd use for a portfolio or Instagram post.
-5. **Download** — grab everything as a zip, or browse the results in the gallery.
+4. **Composite** — builds one overlapping device-mockup hero image per section, all 4
+   viewports layered together.
+5. **Split-crop** — each composite is also cropped into top/bottom halves, ready to post
+   as a two-slide Instagram carousel pair.
+6. **Download** — grab everything as a zip, or browse the results in the gallery.
 
 Everything is also written to a `manifest.json` per run, so the raw data is there for
 whatever comes next (e.g. automated posting).
@@ -44,6 +48,23 @@ Then open [http://localhost:3000](http://localhost:3000).
 - **Local folder** — paste the absolute path to a folder containing your site's
   `index.html`; it's served locally for you automatically.
 
+## Desktop app (macOS)
+
+Screenshot Taker can also run as a real double-clickable `.app` — no terminal, no
+`npm start`, no browser tab to keep open.
+
+```bash
+npm run dist
+```
+
+This packages the app (bundling its own Chromium so it works out of the box) and
+copies the result to `~/Desktop/Screenshot Taker.app`. Just double-click it from then
+on. Output for the desktop app lands in
+`~/Library/Application Support/screenshot-taker/output/` instead of the project's
+`output/` folder, since a packaged app can't write inside its own bundle.
+
+To run it in dev mode without packaging: `npm run electron`.
+
 ## Development
 
 ```bash
@@ -58,8 +79,11 @@ fixture sites and a real headless browser.
 
 ```
 src/            pipeline: crawler, section detector, screenshot capture,
-                composite builder, manifest, Express server + API routes
+                composite builder, split-crop, manifest, Express server + API routes
 public/         frontend (plain HTML/CSS/JS — no framework)
+electron/       Electron main process (desktop app shell)
+assets/         desktop app icon (source PNG + generated .icns)
+scripts/        build-app.sh — packages and deploys the desktop app
 test/           node:test suite + fixture sites
 output/         generated screenshots and composites (git-ignored)
 ```
