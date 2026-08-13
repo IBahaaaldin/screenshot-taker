@@ -633,6 +633,10 @@ select {
   padding: 24px;
 }
 
+.modal-overlay[hidden] {
+  display: none;
+}
+
 .modal-card {
   background: var(--ground-card);
   border: 1px solid var(--line-bright);
