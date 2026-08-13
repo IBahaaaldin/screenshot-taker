@@ -1,6 +1,11 @@
 // electron/main.js
 import { app, BrowserWindow, dialog } from 'electron';
 import path from 'node:path';
+
+if (app.isPackaged) {
+  process.env.PLAYWRIGHT_BROWSERS_PATH = path.join(process.resourcesPath, 'playwright-browsers');
+}
+
 import { createApp } from '../src/server.js';
 import { startScheduler } from '../src/scheduler.js';
 
