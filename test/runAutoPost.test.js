@@ -99,6 +99,54 @@ test('autoPost:true with Instagram not configured still succeeds and queues noth
   assert.equal(queue.items.length, 0);
 });
 
+test('autoPost failure does not flip a successful run to error', async (t) => {
+  const outputRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'autopost-test-failure-'));
+  const { server, base } = await startTestApp(outputRoot);
+  const originalUserId = process.env.IG_BUSINESS_ACCOUNT_ID;
+  const originalToken = process.env.IG_ACCESS_TOKEN;
+
+  t.after(async () => {
+    await new Promise((resolve) => server.close(resolve));
+    await fs.rm(outputRoot, { recursive: true, force: true });
+    if (originalUserId === undefined) delete process.env.IG_BUSINESS_ACCOUNT_ID; else process.env.IG_BUSINESS_ACCOUNT_ID = originalUserId;
+    if (originalToken === undefined) delete process.env.IG_ACCESS_TOKEN; else process.env.IG_ACCESS_TOKEN = originalToken;
+  });
+
+  process.env.IG_BUSINESS_ACCOUNT_ID = 'IGUSER';
+  process.env.IG_ACCESS_TOKEN = 'TOKEN';
+
+  // Force autoQueueManifest to fail deterministically: pre-create a directory
+  // at the exact path writeQueue/readQueue need to use as a plain file, so
+  // reading/writing post-queue.json throws (EISDIR) instead of succeeding.
+  await fs.mkdir(path.join(outputRoot, 'post-queue.json'));
+
+  const runRes = await fetch(`${base}/api/run`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ localFolder: fixtureDir, mode: 'auto', siteName: 'autopost-failure', autoPost: true }),
+  });
+  const { runId } = await runRes.json();
+
+  const res = await fetch(`${base}/api/progress/${runId}`);
+  const text = await res.text();
+  const events = [...text.matchAll(/data: (\{.*\})\n\n/g)].map((m) => JSON.parse(m[1]));
+
+  const manifestReady = events.find((e) => e.type === 'manifest-ready');
+  assert.ok(manifestReady, 'expected a manifest-ready event');
+  assert.ok(manifestReady.manifest, 'run should still have produced a manifest despite auto-post failure');
+  assert.ok(manifestReady.manifest.pages.length > 0);
+
+  const errorEvent = events.find((e) => e.type === 'auto-post-error');
+  assert.ok(errorEvent, 'expected an auto-post-error event in the progress stream');
+  assert.match(errorEvent.message, /Auto-posting failed/);
+
+  // The route only serves manifest-ready with a populated manifest once
+  // run.status !== 'running'; download must now succeed since status stayed 'done'.
+  const downloadRes = await fetch(`${base}/api/download/${runId}`);
+  assert.equal(downloadRes.status, 200, 'download should succeed because the run is still marked done');
+  await downloadRes.arrayBuffer();
+});
+
 test('autoPost defaults to false — a normal run queues nothing', async (t) => {
   const outputRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'autopost-test-default-'));
   const { server, base } = await startTestApp(outputRoot);

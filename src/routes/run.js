@@ -125,7 +125,12 @@ async function executeRun({ runId, url, localFolder, mode, selectors, siteName, 
     run.status = 'done';
 
     if (autoPost) {
-      await autoQueueManifest(manifest, { outputRoot, onProgress: (event) => run.events.push(event) });
+      try {
+        await autoQueueManifest(manifest, { outputRoot, onProgress: (event) => run.events.push(event) });
+      } catch (err) {
+        console.error(`Auto-post failed for run ${runId}:`, err);
+        run.events.push({ type: 'auto-post-error', message: `Auto-posting failed: ${err.message}` });
+      }
     }
   } finally {
     if (localServer) await localServer.close();
