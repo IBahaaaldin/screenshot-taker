@@ -4,7 +4,27 @@ import { postSingleImage, postCarousel } from './instagram.js';
 import { startTunnel } from './tunnel.js';
 import { startLocalServer } from './localServer.js';
 
-export async function postQueueItem(
+// The scheduler and the manual-post route both call postQueueItem in the same
+// process, and each call does a slow (tunnel + Graph API) read-modify-write of
+// the whole post-queue.json file. If two calls overlapped, the second call's
+// finally-block write could stomp on the first call's write with a stale
+// in-memory snapshot — including reverting an already-`posted` item back to
+// `queued`, which could then get posted to Instagram a second time. Chaining
+// every call onto a shared promise serializes the whole read-modify-write
+// cycle so no two calls' file I/O can interleave.
+let writeLock = Promise.resolve();
+
+export async function postQueueItem(itemId, options) {
+  const run = () => postQueueItemImpl(itemId, options);
+  const result = writeLock.then(run, run);
+  writeLock = result.then(
+    () => {},
+    () => {}
+  );
+  return result;
+}
+
+async function postQueueItemImpl(
   itemId,
   {
     igUserId,
