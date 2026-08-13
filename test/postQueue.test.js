@@ -55,6 +55,29 @@ test('writeQueue leaves no stray temp files behind after a successful write', as
   await fs.rm(dir, { recursive: true, force: true });
 });
 
+test('writeQueue handles concurrent writes to the same path without collisions', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'post-queue-test-'));
+  const queueFilePath = path.join(dir, 'post-queue.json');
+
+  const writes = Array.from({ length: 8 }, (_, i) =>
+    writeQueue(queueFilePath, { items: [{ id: `item-${i}`, status: 'queued' }] })
+  );
+  const results = await Promise.allSettled(writes);
+
+  for (const result of results) {
+    assert.equal(result.status, 'fulfilled');
+  }
+
+  const readBack = await readQueue(queueFilePath);
+  assert.ok(Array.isArray(readBack.items));
+
+  const entries = await fs.readdir(dir);
+  assert.deepEqual(entries, ['post-queue.json']);
+  assert.ok(!entries.some((entry) => entry.includes('.tmp-')));
+
+  await fs.rm(dir, { recursive: true, force: true });
+});
+
 test('countPostsInLast24h counts only posted items within the last 24 hours', () => {
   const now = Date.parse('2026-01-02T12:00:00.000Z');
   const queue = {

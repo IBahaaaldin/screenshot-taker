@@ -95,8 +95,8 @@ Long-lived tokens expire after ~60 days — repeat steps 5-8 to refresh.
 
 **What happens when you click Post:** Instagram's servers need to fetch your
 images over the public internet, so clicking Post briefly starts a small
-dedicated file server (serving only the images being posted, not the rest of
-the app) and exposes it via a public URL through
+dedicated file server (serving your generated output files — not the rest of
+the app, since no API routes are reachable through it) and exposes it via a public URL through
 [localtunnel](https://localtunnel.github.io/www/). That public URL stays
 reachable for roughly as long as the post takes — typically well under a
 minute for a single image, up to several minutes for a large carousel — and

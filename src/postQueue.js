@@ -14,9 +14,14 @@ export async function readQueue(queueFilePath) {
 
 export async function writeQueue(queueFilePath, queue) {
   await fs.mkdir(path.dirname(queueFilePath), { recursive: true });
-  const tmpPath = `${queueFilePath}.tmp-${process.pid}-${Date.now()}`;
+  const tmpPath = `${queueFilePath}.tmp-${process.pid}-${crypto.randomUUID()}`;
   await fs.writeFile(tmpPath, JSON.stringify(queue, null, 2), 'utf8');
-  await fs.rename(tmpPath, queueFilePath);
+  try {
+    await fs.rename(tmpPath, queueFilePath);
+  } catch (err) {
+    await fs.rm(tmpPath, { force: true });
+    throw err;
+  }
 }
 
 export function createQueueItem({ siteName, pageUrl, kind, images, caption }) {
