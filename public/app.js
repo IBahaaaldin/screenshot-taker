@@ -21,7 +21,6 @@ const captionCancel = document.getElementById('caption-cancel');
 const captionSubmit = document.getElementById('caption-submit');
 const captionError = document.getElementById('caption-error');
 
-const HASHTAGS = '#webdesign #restaurant #instagood #foodie #smallbusiness';
 let pendingPost = null; // { siteName, pageUrl, kind, images } awaiting caption confirmation
 
 const SOURCE_PLACEHOLDERS = {
@@ -164,6 +163,14 @@ function logLine(type, message) {
 }
 
 function draftCaption({ siteName, pageUrl, slug }) {
+  const HASHTAGS = [
+    '#WebDesign', '#ResponsiveDesign', '#UIUXDesign', '#FrontendDevelopment',
+    '#WebDeveloper', '#FreelanceDesigner', '#WebsiteLaunch', '#CleanUI',
+    '#ModernDesign', '#WebDevLife', '#DigitalMarketing', '#SmallBusinessWebsite',
+    '#BrandIdentity', '#CreativeCoding', '#WebsiteForBusiness', '#StartupWebsite',
+    '#ProfessionalPortfolio', '#DesignForBusiness', '#WebsiteDesign', '#UXDesign',
+  ].join(' ');
+
   const generic = /^section-\d+$/.test(slug);
   let heading = slug;
   if (generic) {
@@ -171,7 +178,26 @@ function draftCaption({ siteName, pageUrl, slug }) {
     const base = pathname.replace(/^\/+|\/+$/g, '').replace(/\.html$/, '');
     heading = base === '' || base === 'index' ? 'home' : base;
   }
-  return `${siteName} — ${heading}\n\n${HASHTAGS}`;
+
+  return [
+    `🔥 Just Delivered: ${siteName}, Digitally Served`,
+    '',
+    `Proud to unveil the latest build — a custom ${heading} experience for ${siteName}, crafted to turn visitors into customers.`,
+    '',
+    "This isn't just a website — it's a digital storefront where every scroll, tap, and swipe was designed on purpose. Built to feel as good on a phone as it does on a 27\" monitor.",
+    '',
+    '✨ Features include:',
+    '✅ Fully responsive design (desktop → tablet → mobile)',
+    '✅ Clean, modern UI with a layout that actually converts',
+    '✅ Fast load times & SEO-friendly structure',
+    '✅ Built for real businesses — not just portfolios',
+    '',
+    '💡 Ready to go live and start turning browsers into customers.',
+    '',
+    "👉 Want a website like this for your business? Let's talk — DM me or check the link in bio.",
+    '',
+    HASHTAGS,
+  ].join('\n');
 }
 
 function openCaptionModal({ siteName, pageUrl, kind, images, slugForDraft }) {
