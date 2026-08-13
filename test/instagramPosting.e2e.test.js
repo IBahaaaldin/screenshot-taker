@@ -25,9 +25,16 @@ test('end-to-end: run the pipeline, then post a resulting composite to Instagram
   const { port } = server.address();
   const base = `http://127.0.0.1:${port}`;
 
+  const originalUserId = process.env.IG_BUSINESS_ACCOUNT_ID;
+  const originalToken = process.env.IG_ACCESS_TOKEN;
+
   t.after(async () => {
     await new Promise((resolve) => server.close(resolve));
     await fs.rm(outputRoot, { recursive: true, force: true });
+    if (originalUserId === undefined) delete process.env.IG_BUSINESS_ACCOUNT_ID;
+    else process.env.IG_BUSINESS_ACCOUNT_ID = originalUserId;
+    if (originalToken === undefined) delete process.env.IG_ACCESS_TOKEN;
+    else process.env.IG_ACCESS_TOKEN = originalToken;
   });
 
   process.env.IG_BUSINESS_ACCOUNT_ID = 'IGUSER';
