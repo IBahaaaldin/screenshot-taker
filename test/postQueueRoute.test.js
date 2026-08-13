@@ -69,6 +69,7 @@ test('POST /api/queue requires Instagram env vars to be configured', async (t) =
 test('POST /api/queue then GET /api/queue reflects a posted item, using injected fakes', async (t) => {
   const outputRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'queue-route-test-'));
   const deps = {
+    startLocalServerFn: async () => ({ url: 'http://127.0.0.1:9999', close: async () => {} }),
     startTunnelFn: async () => ({ url: 'https://fake.loca.lt', close: async () => {} }),
     postSingleImageFn: async () => 'media-1',
   };
@@ -112,4 +113,57 @@ test('POST /api/queue then GET /api/queue reflects a posted item, using injected
 
   const onDisk = await readQueue(path.join(outputRoot, 'post-queue.json'));
   assert.equal(onDisk.items[0].status, 'posted');
+});
+
+test('GET /api/queue returns a clean 500 when the queue file on disk is corrupted', async (t) => {
+  const outputRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'queue-route-test-'));
+  const { server, base } = await startTestApp(outputRoot, {});
+  t.after(async () => {
+    await new Promise((resolve) => server.close(resolve));
+    await fs.rm(outputRoot, { recursive: true, force: true });
+  });
+
+  const queueFilePath = path.join(outputRoot, 'post-queue.json');
+  await fs.writeFile(queueFilePath, '{ this is not valid json', 'utf8');
+
+  const res = await fetch(`${base}/api/queue`);
+  assert.equal(res.status, 500);
+  const body = await res.json();
+  assert.match(body.error, /internal error/i);
+});
+
+test('POST /api/queue rejects carousel posts with more than 10 images', async (t) => {
+  const outputRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'queue-route-test-'));
+  const { server, base } = await startTestApp(outputRoot, {});
+
+  const originalUserId = process.env.IG_BUSINESS_ACCOUNT_ID;
+  const originalToken = process.env.IG_ACCESS_TOKEN;
+
+  t.after(async () => {
+    await new Promise((resolve) => server.close(resolve));
+    await fs.rm(outputRoot, { recursive: true, force: true });
+    if (originalUserId !== undefined) process.env.IG_BUSINESS_ACCOUNT_ID = originalUserId;
+    else delete process.env.IG_BUSINESS_ACCOUNT_ID;
+    if (originalToken !== undefined) process.env.IG_ACCESS_TOKEN = originalToken;
+    else delete process.env.IG_ACCESS_TOKEN;
+  });
+
+  process.env.IG_BUSINESS_ACCOUNT_ID = 'IGUSER';
+  process.env.IG_ACCESS_TOKEN = 'TOKEN';
+
+  const images = Array.from({ length: 11 }, (_, i) => `/x/section-${i}.png`);
+  const res = await fetch(`${base}/api/queue`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      siteName: 'baba-ganoush',
+      pageUrl: 'https://example.com/index.html',
+      kind: 'carousel',
+      images,
+      caption: 'hi',
+    }),
+  });
+  assert.equal(res.status, 400);
+  const body = await res.json();
+  assert.match(body.error, /at most 10/i);
 });

@@ -42,6 +42,19 @@ test('createQueueItem builds a well-formed queued item', () => {
   assert.equal(item.error, null);
 });
 
+test('writeQueue leaves no stray temp files behind after a successful write', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'post-queue-test-'));
+  const queueFilePath = path.join(dir, 'post-queue.json');
+  const queue = { items: [{ id: 'abc', status: 'queued' }] };
+
+  await writeQueue(queueFilePath, queue);
+
+  const entries = await fs.readdir(dir);
+  assert.deepEqual(entries, ['post-queue.json']);
+
+  await fs.rm(dir, { recursive: true, force: true });
+});
+
 test('countPostsInLast24h counts only posted items within the last 24 hours', () => {
   const now = Date.parse('2026-01-02T12:00:00.000Z');
   const queue = {
