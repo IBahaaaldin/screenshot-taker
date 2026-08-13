@@ -107,9 +107,10 @@ the tunnel it creates for you.
 ### Auto-post (unattended scheduling)
 
 The run form has an **Auto-post** checkbox. When checked (and Instagram is
-configured — see above), every section screenshotted in that run is
+configured — see above), every section with a composite in that run is
 automatically queued for posting instead of waiting for you to click Post on
-each one individually.
+each one individually. (A section that failed to capture at every viewport
+has no composite, so it's skipped rather than queued.)
 
 - **Unattended posting**: a background scheduler runs inside the app process
   and ticks every 15 minutes, checking the queue for anything due and posting
@@ -119,9 +120,11 @@ each one individually.
   scheduler posts a due item, it opens the same short-lived localtunnel URL,
   just without a human present to notice it happening.
 - **Queuing math**: auto-queued items are spaced `SCHEDULE_INTERVAL_HOURS`
-  apart (default 24 — see `.env.example`). If a run produces N sections, the
-  last one won't post until roughly `N x SCHEDULE_INTERVAL_HOURS` after the
-  first. A second auto-post run against the same site doesn't post
+  apart (default 24 — see `.env.example`; a non-numeric or zero value
+  silently falls back to that default). If a run produces N sections, the
+  first posts as soon as it's due and the last one won't post until roughly
+  `(N-1) x SCHEDULE_INTERVAL_HOURS` after the first. A second auto-post run
+  against the same site doesn't post
   concurrently with the first — its items are queued to start *after* the
   first run's last already-queued item, so a busy site can end up with a long
   backlog. Check the Queue panel to see each item's `scheduledFor` time.
