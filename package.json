@@ -10,7 +10,8 @@
   },
   "scripts": {
     "start": "node src/server.js",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "electron": "electron electron/main.js"
   },
   "dependencies": {
     "archiver": "^7.0.1",
@@ -18,5 +19,8 @@
     "localtunnel": "^2.0.2",
     "playwright": "^1.47.0",
     "sharp": "^0.35.3"
+  },
+  "devDependencies": {
+    "electron": "^43.4.0"
   }
 }
