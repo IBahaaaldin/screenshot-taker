@@ -64,6 +64,35 @@ test/           node:test suite + fixture sites
 output/         generated screenshots and composites (git-ignored)
 ```
 
+## Instagram posting setup
+
+Posting requires an Instagram **Professional (Business or Creator)**
+account linked to a Facebook Page, and a Meta developer app with Graph API
+access. This is a one-time setup you do yourself in your own browser —
+this tool never touches your Facebook/Instagram login.
+
+1. In the Instagram app: Settings → Account type and tools → switch to a
+   Professional account (Business or Creator) if you haven't already.
+2. Create (or use an existing) Facebook Page, and link your Instagram
+   account to it: Instagram Settings → Linked accounts, or via
+   [Meta Business Suite](https://business.facebook.com).
+3. Go to [developers.facebook.com](https://developers.facebook.com) →
+   My Apps → Create App → choose "Business" as the app type.
+4. In your new app, add the **Instagram Graph API** product.
+5. Open the [Graph API Explorer](https://developers.facebook.com/tools/explorer),
+   select your app and your Page, and generate a User Access Token with
+   the `instagram_basic`, `instagram_content_publish`, `pages_show_list`,
+   and `pages_read_engagement` permissions.
+6. Exchange that short-lived token for a long-lived one (valid ~60 days) —
+   the Graph API Explorer's token has a "debug"/extend option, or use the
+   `oauth/access_token` endpoint with `grant_type=fb_exchange_token`.
+7. Find your Instagram Business Account ID:
+   `GET /{page-id}?fields=instagram_business_account&access_token=...`
+8. Copy `.env.example` to `.env` and fill in `IG_BUSINESS_ACCOUNT_ID` and
+   `IG_ACCESS_TOKEN`. Restart the app (`npm start`) to pick them up.
+
+Long-lived tokens expire after ~60 days — repeat steps 5-8 to refresh.
+
 ## License
 
 MIT
