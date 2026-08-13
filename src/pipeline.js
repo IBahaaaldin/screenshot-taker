@@ -4,6 +4,7 @@ import { chromium } from 'playwright';
 import { crawlSite } from './crawler.js';
 import { captureAllViewports } from './screenshot.js';
 import { buildComposite } from './composite.js';
+import { splitTopBottom } from './splitCrop.js';
 import { writeManifest } from './manifest.js';
 
 export async function runPipeline(
@@ -57,7 +58,7 @@ export async function runPipeline(
   return manifest;
 }
 
-async function buildCompositesForPage(browser, pageOutputDir, viewportResults, onProgress) {
+export async function buildCompositesForPage(browser, pageOutputDir, viewportResults, onProgress) {
   const slugs = new Set();
   for (const { sections } of viewportResults) {
     for (const { slug } of sections) slugs.add(slug);
@@ -72,13 +73,18 @@ async function buildCompositesForPage(browser, pageOutputDir, viewportResults, o
     }
 
     let compositePath = null;
+    let splitCrop = null;
     if (Object.keys(imagesByViewport).length > 0) {
-      const outputPath = path.join(pageOutputDir, 'composites', `${slug}-composite.png`);
+      const compositesDir = path.join(pageOutputDir, 'composites');
+      const outputPath = path.join(compositesDir, `${slug}-composite.png`);
       compositePath = await buildComposite(browser, imagesByViewport, outputPath);
       onProgress({ type: 'composite-done', message: `Composite ready: ${slug}` });
+
+      splitCrop = await splitTopBottom(compositePath, compositesDir);
+      onProgress({ type: 'split-crop-done', message: `Split crop ready: ${slug}` });
     }
 
-    sections.push({ slug, viewports: imagesByViewport, composite: compositePath });
+    sections.push({ slug, viewports: imagesByViewport, composite: compositePath, splitCrop });
   }
 
   return sections;

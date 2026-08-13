@@ -5,7 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { startLocalServer } from '../src/localServer.js';
-import { runPipeline } from '../src/pipeline.js';
+import { runPipeline, buildCompositesForPage } from '../src/pipeline.js';
 import { readManifest } from '../src/manifest.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -38,6 +38,13 @@ test('runPipeline crawls, shoots, composites, and writes a manifest for the fixt
       assert.ok(section.composite, 'every section should have a composite path');
       const stat = await fs.stat(section.composite);
       assert.ok(stat.size > 0);
+    }
+    for (const section of home.sections) {
+      assert.ok(section.splitCrop, 'every section with a composite should have a splitCrop');
+      const topStat = await fs.stat(section.splitCrop.top);
+      const bottomStat = await fs.stat(section.splitCrop.bottom);
+      assert.ok(topStat.size > 0);
+      assert.ok(bottomStat.size > 0);
     }
 
     const onDisk = await readManifest(path.join(outputRoot, 'fixture-site'));
@@ -193,5 +200,49 @@ test('runPipeline captures a page whose scripts throw on document.documentElemen
   } finally {
     await server.close();
     await fs.rm(outputRoot, { recursive: true, force: true });
+  }
+});
+
+// NOTE: the task brief for this change called for a `runPipeline`-level test
+// against `failureFixtureDir` asserting a section with `composite === null`
+// (mirroring an existing test using that fixture for "sections that fail
+// every viewport"). That premise doesn't hold against the current codebase:
+// no such existing test/assertion was found in this file, and running the
+// pipeline against `failureFixtureDir` directly (verified empirically) shows
+// every section it produces has a non-null composite. This is also true by
+// construction: in `buildCompositesForPage`, a slug only ever enters the
+// section set if it's present in `viewportResults`, and the very same
+// `viewportResults` array is then used to look up that slug's per-viewport
+// images -- so `imagesByViewport` can never come back empty for a slug that
+// made it into the set. `composite`/`splitCrop` staying null is therefore
+// purely defensive code, unreachable through any real fixture today. The
+// test below exercises that defensive branch directly against
+// `buildCompositesForPage`, rather than asserting a manifest shape the
+// pipeline cannot currently produce.
+test('buildCompositesForPage sets composite and splitCrop to null when a section has no matching viewport image', async () => {
+  // A getter that returns a populated sections array on its first read (when
+  // buildCompositesForPage collects the slug set) and an empty array on its
+  // second read (when it looks up per-viewport images for that slug),
+  // simulating the only input shape that can actually trigger the null
+  // branch, since a single static viewportResults array cannot.
+  let reads = 0;
+  const ghostEntry = {
+    viewport: 'desktop',
+    get sections() {
+      reads += 1;
+      return reads === 1 ? [{ slug: 'ghost-section', path: '/tmp/ghost-section.png' }] : [];
+    },
+  };
+
+  const outputDir = await fs.mkdtemp(path.join(os.tmpdir(), 'pipeline-nullcomposite-test-'));
+  try {
+    const sections = await buildCompositesForPage(null, outputDir, [ghostEntry], () => {});
+    assert.equal(sections.length, 1);
+    assert.equal(sections[0].slug, 'ghost-section');
+    assert.deepEqual(sections[0].viewports, {});
+    assert.equal(sections[0].composite, null);
+    assert.equal(sections[0].splitCrop, null);
+  } finally {
+    await fs.rm(outputDir, { recursive: true, force: true });
   }
 });
