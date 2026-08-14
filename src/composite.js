@@ -11,10 +11,10 @@ const CANVAS_HEIGHT = 1200;
 // style) instead of separate side-by-side labeled boxes. Values are hand
 // -tuned pixel positions/sizes within the CANVAS_WIDTH x CANVAS_HEIGHT stage.
 const LAYOUT = {
-  desktop: { x: 120, y: 140, w: 980, h: 610, z: 1 },
-  laptop: { x: 860, y: 560, w: 760, h: 470, z: 2 },
-  tablet: { x: 470, y: 760, w: 300, h: 400, z: 3 },
-  mobile: { x: 1620, y: 660, w: 190, h: 400, z: 4 },
+  desktop: { x: 480, y: 120, w: 1000, h: 620, z: 1 },
+  laptop: { x: 1120, y: 580, w: 760, h: 470, z: 2 },
+  tablet: { x: 340, y: 680, w: 320, h: 430, z: 3 },
+  mobile: { x: 640, y: 760, w: 200, h: 420, z: 4 },
 };
 
 export async function buildComposite(browser, imagesByViewport, outputPath) {
