@@ -388,8 +388,8 @@ function renderGallery(manifest, runId) {
         splitRow.className = 'split-crop-row';
 
         for (const [label, imgPath] of [
-          ['top', section.splitCrop.top],
-          ['bottom', section.splitCrop.bottom],
+          ['left', section.splitCrop.left],
+          ['right', section.splitCrop.right],
         ]) {
           const splitCard = document.createElement('div');
           splitCard.className = 'split-crop-card';

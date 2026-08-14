@@ -41,10 +41,10 @@ test('runPipeline crawls, shoots, composites, and writes a manifest for the fixt
     }
     for (const section of home.sections) {
       assert.ok(section.splitCrop, 'every section with a composite should have a splitCrop');
-      const topStat = await fs.stat(section.splitCrop.top);
-      const bottomStat = await fs.stat(section.splitCrop.bottom);
-      assert.ok(topStat.size > 0);
-      assert.ok(bottomStat.size > 0);
+      const leftStat = await fs.stat(section.splitCrop.left);
+      const rightStat = await fs.stat(section.splitCrop.right);
+      assert.ok(leftStat.size > 0);
+      assert.ok(rightStat.size > 0);
     }
 
     const onDisk = await readManifest(path.join(outputRoot, 'fixture-site'));

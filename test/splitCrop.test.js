@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import sharp from 'sharp';
-import { splitTopBottom } from '../src/splitCrop.js';
+import { splitLeftRight } from '../src/splitCrop.js';
 
 async function makeTestImage(dir, width, height) {
   const imgPath = path.join(dir, 'source-composite.png');
@@ -16,55 +16,55 @@ async function makeTestImage(dir, width, height) {
   return imgPath;
 }
 
-test('splitTopBottom crops a composite into top and bottom halves at the default 50%', async () => {
+test('splitLeftRight crops a composite into left and right halves at the default 50%', async () => {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'split-crop-test-'));
   try {
     const source = await makeTestImage(dir, 400, 300);
-    const result = await splitTopBottom(source, dir);
+    const result = await splitLeftRight(source, dir);
 
-    assert.equal(result.top, path.join(dir, 'source-composite.top.png'));
-    assert.equal(result.bottom, path.join(dir, 'source-composite.bottom.png'));
+    assert.equal(result.left, path.join(dir, 'source-composite.left.png'));
+    assert.equal(result.right, path.join(dir, 'source-composite.right.png'));
 
-    const topMeta = await sharp(result.top).metadata();
-    const bottomMeta = await sharp(result.bottom).metadata();
+    const leftMeta = await sharp(result.left).metadata();
+    const rightMeta = await sharp(result.right).metadata();
 
-    assert.equal(topMeta.width, 400);
-    assert.equal(topMeta.height, 150);
-    assert.equal(bottomMeta.width, 400);
-    assert.equal(bottomMeta.height, 150);
+    assert.equal(leftMeta.width, 200);
+    assert.equal(leftMeta.height, 300);
+    assert.equal(rightMeta.width, 200);
+    assert.equal(rightMeta.height, 300);
   } finally {
     await fs.rm(dir, { recursive: true, force: true });
   }
 });
 
-test('splitTopBottom respects a custom cutPercent', async () => {
+test('splitLeftRight respects a custom cutPercent', async () => {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'split-crop-test-'));
   try {
-    const source = await makeTestImage(dir, 200, 400);
-    const result = await splitTopBottom(source, dir, 25);
+    const source = await makeTestImage(dir, 400, 200);
+    const result = await splitLeftRight(source, dir, 25);
 
-    const topMeta = await sharp(result.top).metadata();
-    const bottomMeta = await sharp(result.bottom).metadata();
+    const leftMeta = await sharp(result.left).metadata();
+    const rightMeta = await sharp(result.right).metadata();
 
-    assert.equal(topMeta.height, 100);
-    assert.equal(bottomMeta.height, 300);
+    assert.equal(leftMeta.width, 100);
+    assert.equal(rightMeta.width, 300);
   } finally {
     await fs.rm(dir, { recursive: true, force: true });
   }
 });
 
-test('splitTopBottom clamps cutPercent to the 10-90 range', async () => {
+test('splitLeftRight clamps cutPercent to the 10-90 range', async () => {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'split-crop-test-'));
   try {
-    const source = await makeTestImage(dir, 100, 1000);
+    const source = await makeTestImage(dir, 1000, 100);
 
-    const tooLow = await splitTopBottom(source, dir, 0);
-    const tooLowMeta = await sharp(tooLow.top).metadata();
-    assert.equal(tooLowMeta.height, 100); // clamped to 10%
+    const tooLow = await splitLeftRight(source, dir, 0);
+    const tooLowMeta = await sharp(tooLow.left).metadata();
+    assert.equal(tooLowMeta.width, 100); // clamped to 10%
 
-    const tooHigh = await splitTopBottom(source, dir, 150);
-    const tooHighMeta = await sharp(tooHigh.top).metadata();
-    assert.equal(tooHighMeta.height, 900); // clamped to 90%
+    const tooHigh = await splitLeftRight(source, dir, 150);
+    const tooHighMeta = await sharp(tooHigh.left).metadata();
+    assert.equal(tooHighMeta.width, 900); // clamped to 90%
   } finally {
     await fs.rm(dir, { recursive: true, force: true });
   }

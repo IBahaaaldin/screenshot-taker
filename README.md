@@ -17,7 +17,7 @@ page.
    Tablet (768px), and Mobile (390px).
 4. **Composite** — builds one overlapping device-mockup hero image per section, all 4
    viewports layered together.
-5. **Split-crop** — each composite is also cropped into top/bottom halves, ready to post
+5. **Split-crop** — each composite is also cropped into left/right halves, ready to post
    as a two-slide Instagram carousel pair.
 6. **Download** — grab everything as a zip, or browse the results in the gallery.
 

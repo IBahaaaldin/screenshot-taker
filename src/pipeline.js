@@ -4,7 +4,7 @@ import { chromium } from 'playwright';
 import { crawlSite } from './crawler.js';
 import { captureAllViewports } from './screenshot.js';
 import { buildComposite } from './composite.js';
-import { splitTopBottom } from './splitCrop.js';
+import { splitLeftRight } from './splitCrop.js';
 import { writeManifest } from './manifest.js';
 
 export async function runPipeline(
@@ -81,7 +81,7 @@ export async function buildCompositesForPage(browser, pageOutputDir, viewportRes
       onProgress({ type: 'composite-done', message: `Composite ready: ${slug}` });
 
       try {
-        splitCrop = await splitTopBottom(compositePath, compositesDir);
+        splitCrop = await splitLeftRight(compositePath, compositesDir);
         onProgress({ type: 'split-crop-done', message: `Split crop ready: ${slug}` });
       } catch (err) {
         onProgress({ type: 'split-crop-error', message: `Split crop failed for ${slug}: ${err.message}` });
