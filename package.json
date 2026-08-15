@@ -51,6 +51,9 @@
           "chromium_headless_shell-*/**"
         ]
       }
+    ],
+    "asarUnpack": [
+      "**/node_modules/ffmpeg-static/**"
     ]
   }
 }

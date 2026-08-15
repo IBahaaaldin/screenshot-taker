@@ -56,8 +56,12 @@ function parseTargetUrl(raw) {
   return url;
 }
 
-export function createPreviewRouter({ outputRoot } = {}) {
+export function createPreviewRouter({ outputRoot, previewBaseUrl } = {}) {
   const router = express.Router();
+  // Single in-process flag: this is a single-user local tool, so a simple
+  // boolean is enough to stop a second tab/refresh/direct API call from
+  // launching a second concurrent Chromium + ffmpeg encode. No queue needed.
+  let recordingInProgress = false;
 
   router.get('/preview/page', async (req, res) => {
     const target = parseTargetUrl(req.query.url);
@@ -130,9 +134,17 @@ export function createPreviewRouter({ outputRoot } = {}) {
       res.status(500).json({ error: 'Recording is not configured (missing outputRoot)' });
       return;
     }
+    if (!previewBaseUrl) {
+      res.status(500).json({ error: 'Recording is not configured (missing previewBaseUrl)' });
+      return;
+    }
+    if (recordingInProgress) {
+      res.status(409).json({ error: 'A recording is already in progress' });
+      return;
+    }
+    recordingInProgress = true;
     try {
       const recordingsDir = path.join(outputRoot, 'recordings');
-      const previewBaseUrl = `${req.protocol}://${req.get('host')}`;
       const { mp4Path, durationMs } = await recordSitePreview({
         url: target.href,
         previewBaseUrl,
@@ -146,6 +158,8 @@ export function createPreviewRouter({ outputRoot } = {}) {
       res.status(200).json({ downloadUrl: `/output/recordings/${finalName}`, durationMs });
     } catch (err) {
       res.status(502).json({ error: `Failed to record preview: ${err.message}` });
+    } finally {
+      recordingInProgress = false;
     }
   });
 

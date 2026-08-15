@@ -772,6 +772,21 @@ body#preview-page main {
   height: 900px;
 }
 
+/* Recording mode: hide all page chrome so #preview-stage is the only thing
+   rendered, starting at the top of the page. Triggered by ?record=1, used
+   by src/screenRecorder.js so the recorded viewport shows only the 4
+   device frames instead of being mostly consumed by nav/hero/card chrome. */
+body.recording-mode nav,
+body.recording-mode .hero,
+body.recording-mode .card,
+body.recording-mode .preview-limitation-note {
+  display: none;
+}
+
+body.recording-mode .preview-stage {
+  margin: 0 auto;
+}
+
 .record-result {
   margin-top: 1.5rem;
   display: flex;

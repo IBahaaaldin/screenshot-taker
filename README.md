@@ -63,11 +63,15 @@ preview perfectly, since the proxy rewrites links/assets rather than
 executing arbitrary client-side routing logic.
 
 From the live preview page, click "Record video" to get a downloadable
-MP4 of the same synced 4-device view auto-scrolling through the page —
-ready to post as a Reel or Story. Recording takes roughly the length of
-the resulting clip (4-15 seconds, scaled to how long the page is) plus a
-few seconds to launch and encode. Recordings are saved under
-`output/recordings/` and aren't tied to a capture run.
+MP4 of the same synced 4-device view auto-scrolling through the page — a
+landscape "all 4 devices" walkthrough clip. It's a shareable demo of the
+site, or raw footage to crop/edit into a Reel or Story later, but the
+output itself is landscape, not the 9:16 portrait Reels/Stories expect.
+Recording involves loading the page, letting it settle, scrolling through
+it (4-15 seconds, scaled to how long the page is), and transcoding —
+end-to-end this can take noticeably longer than the clip's own length.
+Recordings are saved under `output/recordings/` and aren't tied to a
+capture run.
 
 ## Desktop app (macOS)
 

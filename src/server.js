@@ -11,14 +11,23 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 loadEnvFile(path.join(__dirname, '..', '.env'));
 
-export function createApp({ outputRoot = path.join(__dirname, '..', 'output'), postQueueDeps = {} } = {}) {
+export function createApp({
+  outputRoot = path.join(__dirname, '..', 'output'),
+  postQueueDeps = {},
+  port = process.env.PORT || 3000,
+} = {}) {
   const app = express();
   const runs = new Map();
+  // Fixed to the server's own bound origin rather than derived from the
+  // request (req.protocol/req.get('host')), which is attacker-controlled
+  // via a forged Host header and would let a request launch a real,
+  // non-sandboxed Chromium navigation to an arbitrary origin.
+  const previewBaseUrl = `http://127.0.0.1:${port}`;
 
   app.use(express.json());
   app.use('/api', createRunRouter({ outputRoot, runs }));
   app.use('/api', createPostQueueRouter({ outputRoot, deps: postQueueDeps }));
-  app.use('/api', createPreviewRouter({ outputRoot }));
+  app.use('/api', createPreviewRouter({ outputRoot, previewBaseUrl }));
   app.use('/output', express.static(outputRoot));
   app.use(express.static(path.join(__dirname, '..', 'public')));
 

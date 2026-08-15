@@ -116,7 +116,7 @@ recordBtn.addEventListener('click', async () => {
   recordBtn.classList.add('is-loading');
   const labelEl = recordBtn.querySelector('.shutter-label');
   const originalLabel = labelEl.textContent;
-  labelEl.textContent = 'Recording… ~15s';
+  labelEl.textContent = 'Recording…';
   try {
     const res = await fetch('/api/preview/record', {
       method: 'POST',
@@ -141,6 +141,11 @@ recordBtn.addEventListener('click', async () => {
 });
 
 const params = new URLSearchParams(window.location.search);
+
+if (params.get('record') === '1') {
+  document.body.classList.add('recording-mode');
+}
+
 const prefill = params.get('url');
 if (prefill) {
   const normalizedPrefill = normalizeUrl(prefill);

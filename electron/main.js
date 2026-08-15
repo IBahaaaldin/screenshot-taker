@@ -19,7 +19,7 @@ const PORT = 3000;
 
 async function startServer() {
   const outputRoot = path.join(app.getPath('userData'), 'output');
-  const expressApp = createApp({ outputRoot });
+  const expressApp = createApp({ outputRoot, port: PORT });
 
   const igUserId = process.env.IG_BUSINESS_ACCOUNT_ID;
   const accessToken = process.env.IG_ACCESS_TOKEN;
