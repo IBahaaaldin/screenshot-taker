@@ -2,6 +2,7 @@ node_modules/
 output/
 *.log
 .worktrees/
+.superpowers/
 .env
 .env.local
 assets/icon.iconset/
