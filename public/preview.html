@@ -35,6 +35,7 @@
         <div class="field">
           <label for="preview-url">URL</label>
           <input type="text" id="preview-url" name="previewUrl" required placeholder="https://example.com" autocomplete="off" />
+          <p class="field-error" id="preview-url-error" hidden></p>
         </div>
         <button type="submit" class="btn-primary" id="preview-submit">
           <span class="shutter-ring"></span>
@@ -48,18 +49,18 @@
 
     <div id="preview-stage" class="preview-stage" hidden>
       <div class="preview-frame preview-frame-desktop">
-        <iframe id="preview-iframe-desktop" title="Desktop preview"></iframe>
+        <iframe id="preview-iframe-desktop" title="Desktop preview" sandbox="allow-scripts allow-forms"></iframe>
       </div>
       <div class="preview-frame preview-frame-laptop">
         <span class="preview-frame-notch" aria-hidden="true"></span>
-        <iframe id="preview-iframe-laptop" title="Laptop preview"></iframe>
+        <iframe id="preview-iframe-laptop" title="Laptop preview" sandbox="allow-scripts allow-forms"></iframe>
       </div>
       <div class="preview-frame preview-frame-tablet">
-        <iframe id="preview-iframe-tablet" title="Tablet preview"></iframe>
+        <iframe id="preview-iframe-tablet" title="Tablet preview" sandbox="allow-scripts allow-forms"></iframe>
       </div>
       <div class="preview-frame preview-frame-mobile">
         <span class="preview-frame-island" aria-hidden="true"></span>
-        <iframe id="preview-iframe-mobile" title="Mobile preview"></iframe>
+        <iframe id="preview-iframe-mobile" title="Mobile preview" sandbox="allow-scripts allow-forms"></iframe>
         <span class="preview-frame-home" aria-hidden="true"></span>
       </div>
     </div>

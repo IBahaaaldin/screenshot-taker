@@ -184,6 +184,8 @@ main { max-width: 760px; margin: 0 auto; }
 
 .field-hint-inline { font-weight: 400; color: var(--ink-faint); }
 
+.field-error { font-size: 0.78rem; color: #d64545; margin-top: 4px; }
+
 input[type="text"], select {
   width: 100%;
   padding: 11px 12px;

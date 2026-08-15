@@ -7,6 +7,7 @@ const DEVICES = {
 
 const form = document.getElementById('preview-form');
 const urlInput = document.getElementById('preview-url');
+const urlError = document.getElementById('preview-url-error');
 const stage = document.getElementById('preview-stage');
 const iframes = {
   desktop: document.getElementById('preview-iframe-desktop'),
@@ -17,6 +18,27 @@ const iframes = {
 
 function proxiedPageUrl(targetUrl) {
   return `/api/preview/page?url=${encodeURIComponent(targetUrl)}`;
+}
+
+function normalizeUrl(value) {
+  const withProtocol = /^https?:\/\//i.test(value) ? value : `https://${value}`;
+  try {
+    return new URL(withProtocol).href;
+  } catch {
+    return null;
+  }
+}
+
+function showUrlError(message) {
+  if (!urlError) return;
+  urlError.textContent = message;
+  urlError.hidden = false;
+}
+
+function clearUrlError() {
+  if (!urlError) return;
+  urlError.hidden = true;
+  urlError.textContent = '';
 }
 
 function scaleFramesToFit() {
@@ -67,12 +89,21 @@ form.addEventListener('submit', (e) => {
   e.preventDefault();
   const value = urlInput.value.trim();
   if (!value) return;
-  loadAll(value);
+  const normalized = normalizeUrl(value);
+  if (!normalized) {
+    showUrlError('Enter a valid URL, e.g. example.com or https://example.com');
+    return;
+  }
+  clearUrlError();
+  loadAll(normalized);
 });
 
 const params = new URLSearchParams(window.location.search);
 const prefill = params.get('url');
 if (prefill) {
-  urlInput.value = prefill;
-  loadAll(prefill);
+  const normalizedPrefill = normalizeUrl(prefill);
+  if (normalizedPrefill) {
+    urlInput.value = normalizedPrefill;
+    loadAll(normalizedPrefill);
+  }
 }

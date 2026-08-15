@@ -8,18 +8,25 @@ const SYNC_BRIDGE_SCRIPT = `<script>
     var href = a.getAttribute('href') || '';
     if (/^(#|mailto:|tel:|javascript:)/i.test(href)) return;
     e.preventDefault();
-    parent.postMessage({ type: 'preview-nav', url: a.href }, '*');
+    var navUrl = a.dataset.previewOriginalHref || a.href;
+    parent.postMessage({ type: 'preview-nav', url: navUrl }, '*');
   }, true);
 
-  var suppressScroll = false;
+  var lastSyncTarget = null;
   window.addEventListener('message', function (e) {
     if (e.data && e.data.type === 'preview-scroll-to') {
-      suppressScroll = true;
+      lastSyncTarget = { y: e.data.y, atTime: Date.now() };
       window.scrollTo(0, e.data.y);
     }
   });
   window.addEventListener('scroll', function () {
-    if (suppressScroll) { suppressScroll = false; return; }
+    if (
+      lastSyncTarget &&
+      Math.abs(window.scrollY - lastSyncTarget.y) < 3 &&
+      (Date.now() - lastSyncTarget.atTime) < 400
+    ) {
+      return;
+    }
     parent.postMessage({ type: 'preview-scroll', y: window.scrollY }, '*');
   }, { passive: true });
 })();
@@ -55,8 +62,19 @@ export async function rewritePageHtml(html, baseUrl) {
   const $ = cheerio.load(html);
 
   $('[href]').each((_, el) => {
-    const proxied = toProxiedAssetUrl($(el).attr('href'), baseUrl);
-    if (proxied) $(el).attr('href', proxied);
+    const rawHref = $(el).attr('href');
+    const proxied = toProxiedAssetUrl(rawHref, baseUrl);
+    if (!proxied) return;
+    if (el.tagName && el.tagName.toLowerCase() === 'a') {
+      let absolute;
+      try {
+        absolute = new URL(rawHref, baseUrl).href;
+      } catch {
+        absolute = null;
+      }
+      if (absolute) $(el).attr('data-preview-original-href', absolute);
+    }
+    $(el).attr('href', proxied);
   });
   $('[src]').each((_, el) => {
     const proxied = toProxiedAssetUrl($(el).attr('src'), baseUrl);

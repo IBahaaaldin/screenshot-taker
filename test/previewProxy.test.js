@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import * as cheerio from 'cheerio';
 import { rewritePageHtml, rewriteCssUrls } from '../src/previewProxy.js';
 
 test('rewritePageHtml rewrites relative href/src to /api/preview/asset', async () => {
@@ -9,6 +10,16 @@ test('rewritePageHtml rewrites relative href/src to /api/preview/asset', async (
   assert.match(out, /href="\/api\/preview\/asset\?url=https%3A%2F%2Fexample\.com%2Fstyles\.css"/);
   assert.match(out, /src="\/api\/preview\/asset\?url=https%3A%2F%2Fexample\.com%2Fimages%2Fhero\.png"/);
   assert.match(out, /href="\/api\/preview\/asset\?url=https%3A%2F%2Fexample\.com%2Fabout\.html"/);
+});
+
+test('rewritePageHtml stashes the original absolute URL on rewritten anchors', async () => {
+  const html = `<a href="/about.html">About</a>`;
+  const out = await rewritePageHtml(html, 'https://example.com/index.html');
+  assert.match(out, /href="\/api\/preview\/asset\?url=https%3A%2F%2Fexample\.com%2Fabout\.html"/);
+  assert.match(out, /data-preview-original-href="https:\/\/example\.com\/about\.html"/);
+  const $ = cheerio.load(out);
+  const a = $('a');
+  assert.equal(a.attr('data-preview-original-href'), 'https://example.com/about.html');
 });
 
 test('rewritePageHtml leaves anchor/mailto/javascript links untouched', async () => {
