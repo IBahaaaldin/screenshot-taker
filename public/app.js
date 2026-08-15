@@ -3,6 +3,7 @@ const form = document.getElementById('run-form');
 const sourceType = document.getElementById('sourceType');
 const sourceLabel = document.getElementById('sourceLabel');
 const sourceValue = document.getElementById('sourceValue');
+const previewLiveBtn = document.getElementById('preview-live-btn');
 const modeSelect = document.getElementById('mode');
 const selectorsRow = document.getElementById('selectorsRow');
 const submitBtn = document.getElementById('submit-btn');
@@ -36,10 +37,15 @@ const SOURCE_PLACEHOLDERS = {
   localFolder: { label: 'Local folder path', placeholder: '/Users/you/projects/my-site' },
 };
 
+function updatePreviewBtnState() {
+  previewLiveBtn.disabled = sourceType.value !== 'url';
+}
+
 sourceType.addEventListener('change', () => {
   const cfg = SOURCE_PLACEHOLDERS[sourceType.value];
   sourceLabel.textContent = cfg.label;
   sourceValue.placeholder = cfg.placeholder;
+  updatePreviewBtnState();
 });
 
 modeSelect.addEventListener('change', () => {
@@ -494,4 +500,14 @@ galleryCollapseAll.addEventListener('click', () => {
   }
 });
 
+previewLiveBtn?.addEventListener('click', () => {
+  const value = sourceValue.value.trim();
+  if (!value) {
+    sourceValue.focus();
+    return;
+  }
+  window.open(`preview.html?url=${encodeURIComponent(value)}`, '_blank', 'noopener');
+});
+
+updatePreviewBtnState();
 refreshQueue();
