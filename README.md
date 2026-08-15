@@ -60,7 +60,11 @@ This works by proxying the target page through the app's own server so it
 can be embedded (many sites block being framed directly). It works best on
 standard multi-page sites — heavily JS-driven single-page apps may not
 preview perfectly, since the proxy rewrites links/assets rather than
-executing arbitrary client-side routing logic.
+executing arbitrary client-side routing logic. Each of the 4 frames is a
+separate proxied page load, so anything driven by the target site's own
+timers (an auto-rotating hero carousel, for example) runs independently
+per frame and can visibly drift out of sync over time — only scrolling and
+clicking are actively synced.
 
 From the live preview page, click "Record video" to get a downloadable
 MP4 of the same synced 4-device view auto-scrolling through the page — a
