@@ -62,6 +62,13 @@ standard multi-page sites — heavily JS-driven single-page apps may not
 preview perfectly, since the proxy rewrites links/assets rather than
 executing arbitrary client-side routing logic.
 
+From the live preview page, click "Record video" to get a downloadable
+MP4 of the same synced 4-device view auto-scrolling through the page —
+ready to post as a Reel or Story. Recording takes roughly the length of
+the resulting clip (4-15 seconds, scaled to how long the page is) plus a
+few seconds to launch and encode. Recordings are saved under
+`output/recordings/` and aren't tied to a capture run.
+
 ## Desktop app (macOS)
 
 Screenshot Taker can also run as a real double-clickable `.app` — no terminal, no
