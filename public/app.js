@@ -13,6 +13,14 @@ const gallerySection = document.getElementById('gallery');
 const galleryContent = document.getElementById('gallery-content');
 const downloadLink = document.getElementById('download-link');
 
+const galleryToolbar = document.getElementById('gallery-toolbar');
+const galleryFilter = document.getElementById('gallery-filter');
+const galleryExpandAll = document.getElementById('gallery-expand-all');
+const galleryCollapseAll = document.getElementById('gallery-collapse-all');
+const lightbox = document.getElementById('lightbox');
+const lightboxImg = document.getElementById('lightbox-img');
+const lightboxClose = document.getElementById('lightbox-close');
+
 const queueContent = document.getElementById('queue-content');
 const captionModal = document.getElementById('caption-modal');
 const captionModalTitle = document.getElementById('caption-modal-title');
@@ -299,17 +307,32 @@ function renderQueue(items) {
 
 function renderGallery(manifest, runId) {
   gallerySection.hidden = false;
+  galleryToolbar.hidden = manifest.pages.length <= 1;
   downloadLink.href = `/api/download/${runId}`;
 
   let frameDelay = 0;
+  const collapseByDefault = manifest.pages.length > 3;
 
-  for (const page of manifest.pages) {
+  manifest.pages.forEach((page, pageIndex) => {
     const pageBlock = document.createElement('div');
     pageBlock.className = 'page-block';
+    if (collapseByDefault && pageIndex > 0) pageBlock.classList.add('collapsed');
+    pageBlock.dataset.url = page.url.toLowerCase();
+
+    const header = document.createElement('div');
+    header.className = 'page-block-header';
+    header.addEventListener('click', () => pageBlock.classList.toggle('collapsed'));
+
+    const toggle = document.createElement('span');
+    toggle.className = 'page-block-toggle';
+    toggle.textContent = '▾';
+    header.appendChild(toggle);
 
     const title = document.createElement('h3');
     title.textContent = page.url;
-    pageBlock.appendChild(title);
+    header.appendChild(title);
+
+    pageBlock.appendChild(header);
 
     const pageComposites = page.sections.filter((s) => s.composite).map((s) => s.composite);
     if (pageComposites.length > 1) {
@@ -347,6 +370,7 @@ function renderGallery(manifest, runId) {
         img.src = toWebPath(section.composite);
         img.alt = `${section.slug} composite`;
         img.loading = 'lazy';
+        img.addEventListener('click', () => openLightbox(img.src, img.alt));
         frame.appendChild(img);
       } else {
         const missing = document.createElement('div');
@@ -398,6 +422,7 @@ function renderGallery(manifest, runId) {
           splitImg.src = toWebPath(imgPath);
           splitImg.alt = `${section.slug} composite — ${label} half`;
           splitImg.loading = 'lazy';
+          splitImg.addEventListener('click', () => openLightbox(splitImg.src, splitImg.alt));
           splitCard.appendChild(splitImg);
 
           const splitLabel = document.createElement('span');
@@ -423,12 +448,50 @@ function renderGallery(manifest, runId) {
 
     pageBlock.appendChild(strip);
     galleryContent.appendChild(pageBlock);
-  }
+  });
 }
 
 function toWebPath(absolutePath) {
   const idx = absolutePath.indexOf('/output/');
   return idx >= 0 ? absolutePath.slice(idx) : absolutePath;
 }
+
+function openLightbox(src, alt) {
+  lightboxImg.src = src;
+  lightboxImg.alt = alt || '';
+  lightbox.hidden = false;
+}
+
+function closeLightbox() {
+  lightbox.hidden = true;
+  lightboxImg.src = '';
+}
+
+lightbox.addEventListener('click', (e) => {
+  if (e.target === lightbox) closeLightbox();
+});
+lightboxClose.addEventListener('click', closeLightbox);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !lightbox.hidden) closeLightbox();
+});
+
+galleryFilter.addEventListener('input', () => {
+  const query = galleryFilter.value.trim().toLowerCase();
+  for (const pageBlock of galleryContent.querySelectorAll('.page-block')) {
+    pageBlock.hidden = query.length > 0 && !pageBlock.dataset.url.includes(query);
+  }
+});
+
+galleryExpandAll.addEventListener('click', () => {
+  for (const pageBlock of galleryContent.querySelectorAll('.page-block')) {
+    pageBlock.classList.remove('collapsed');
+  }
+});
+
+galleryCollapseAll.addEventListener('click', () => {
+  for (const pageBlock of galleryContent.querySelectorAll('.page-block')) {
+    pageBlock.classList.add('collapsed');
+  }
+});
 
 refreshQueue();

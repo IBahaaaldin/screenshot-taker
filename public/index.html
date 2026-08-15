@@ -111,6 +111,11 @@
           Download all
         </a>
       </div>
+      <div class="gallery-toolbar" id="gallery-toolbar" hidden>
+        <input type="text" id="gallery-filter" placeholder="Filter pages by URL…" autocomplete="off" />
+        <button type="button" id="gallery-expand-all" class="frame-post-btn">Expand all</button>
+        <button type="button" id="gallery-collapse-all" class="frame-post-btn">Collapse all</button>
+      </div>
       <div id="gallery-content"></div>
     </div>
 
@@ -122,6 +127,11 @@
       <div id="queue-content" class="queue-content">
         <p class="queue-empty">Nothing posted yet.</p>
       </div>
+    </div>
+
+    <div id="lightbox" class="modal-overlay lightbox-overlay" hidden>
+      <button type="button" id="lightbox-close" class="lightbox-close" aria-label="Close">&times;</button>
+      <img id="lightbox-img" src="" alt="" />
     </div>
 
     <div id="caption-modal" class="modal-overlay" hidden>

@@ -568,6 +568,81 @@ select {
 
 .modal-card h3 { font-weight: 700; color: var(--ink); }
 
+/* ---------------------------------------------------------------
+   Lightbox
+   ------------------------------------------------------------- */
+
+.lightbox-overlay {
+  background: rgba(0, 0, 0, 0.85);
+  cursor: zoom-out;
+}
+
+.lightbox-overlay img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+  cursor: default;
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 20px;
+  right: 28px;
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 8px;
+}
+
+.frame img,
+.split-crop-card img {
+  cursor: zoom-in;
+}
+
+/* ---------------------------------------------------------------
+   Gallery toolbar + collapsible page blocks
+   ------------------------------------------------------------- */
+
+.gallery-toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.gallery-toolbar input[type="text"] {
+  flex: 1;
+  min-width: 200px;
+}
+
+.page-block-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  margin-bottom: 14px;
+  user-select: none;
+}
+
+.page-block-header h3 { margin: 0; }
+
+.page-block-toggle {
+  font-size: 0.7rem;
+  color: var(--ink-faint);
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+
+.page-block.collapsed .page-block-toggle { transform: rotate(-90deg); }
+.page-block.collapsed .strip,
+.page-block.collapsed .page-carousel-btn { display: none; }
+
+.page-block[hidden] { display: none; }
+
 #caption-text {
   width: 100%;
   background: var(--card-raised);
