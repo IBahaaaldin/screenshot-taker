@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRunRouter } from './routes/run.js';
 import { createPostQueueRouter } from './routes/postQueue.js';
+import { createPreviewRouter } from './routes/preview.js';
 import { loadEnvFile } from './env.js';
 import { startScheduler } from './scheduler.js';
 
@@ -17,6 +18,7 @@ export function createApp({ outputRoot = path.join(__dirname, '..', 'output'), p
   app.use(express.json());
   app.use('/api', createRunRouter({ outputRoot, runs }));
   app.use('/api', createPostQueueRouter({ outputRoot, deps: postQueueDeps }));
+  app.use('/api', createPreviewRouter());
   app.use('/output', express.static(outputRoot));
   app.use(express.static(path.join(__dirname, '..', 'public')));
 
