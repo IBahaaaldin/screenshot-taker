@@ -16,11 +16,10 @@ const SYNC_BRIDGE_SCRIPT = `<script>
     if (e.data && e.data.type === 'preview-scroll-to') {
       suppressScroll = true;
       window.scrollTo(0, e.data.y);
-      suppressScroll = false;
     }
   });
   window.addEventListener('scroll', function () {
-    if (suppressScroll) return;
+    if (suppressScroll) { suppressScroll = false; return; }
     parent.postMessage({ type: 'preview-scroll', y: window.scrollY }, '*');
   }, { passive: true });
 })();

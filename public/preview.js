@@ -15,8 +15,6 @@ const iframes = {
   mobile: document.getElementById('preview-iframe-mobile'),
 };
 
-let syncing = false;
-
 function proxiedPageUrl(targetUrl) {
   return `/api/preview/page?url=${encodeURIComponent(targetUrl)}`;
 }
@@ -47,23 +45,19 @@ function sourceDeviceOf(win) {
 window.addEventListener('message', (event) => {
   if (!event.data || typeof event.data !== 'object') return;
   const fromDevice = sourceDeviceOf(event.source);
-  if (!fromDevice || syncing) return;
+  if (!fromDevice) return;
 
   if (event.data.type === 'preview-scroll') {
-    syncing = true;
     for (const key of Object.keys(iframes)) {
       if (key === fromDevice) continue;
       iframes[key].contentWindow?.postMessage({ type: 'preview-scroll-to', y: event.data.y }, '*');
     }
-    syncing = false;
   }
 
   if (event.data.type === 'preview-nav' && typeof event.data.url === 'string') {
-    syncing = true;
     for (const key of Object.keys(iframes)) {
       iframes[key].src = proxiedPageUrl(event.data.url);
     }
-    syncing = false;
   }
 });
 
