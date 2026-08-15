@@ -15,7 +15,16 @@ export async function crawlSite(startUrl, { maxPages = 50 } = {}) {
       await page.goto(url, { waitUntil: 'load' }).catch((err) => {
         console.error(`[crawler] failed to load ${url}: ${err.message}`);
       });
-      const hrefs = await page.$$eval('a[href]', (as) => as.map((a) => a.getAttribute('href')));
+      // A page can navigate again right after 'load' (a client-side
+      // redirect, an analytics-triggered reload, etc.), destroying the
+      // execution context mid-eval. That must not abort the whole crawl —
+      // just skip link discovery for this one page and keep going.
+      const hrefs = await page
+        .$$eval('a[href]', (as) => as.map((a) => a.getAttribute('href')))
+        .catch((err) => {
+          console.error(`[crawler] failed to extract links from ${url}: ${err.message}`);
+          return [];
+        });
 
       for (const href of hrefs) {
         if (!href) continue;

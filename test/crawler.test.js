@@ -19,6 +19,31 @@ test('crawlSite discovers all same-domain pages from the fixture site', async ()
   }
 });
 
+test('crawlSite does not abort the whole crawl when one page\'s link extraction fails', async () => {
+  const server = await startLocalServer(fixtureDir);
+  try {
+    // crawler-flaky.html's own link extraction always throws (simulating a
+    // real site whose execution context gets destroyed mid-eval), but it's
+    // still reached and visited, and the sibling page linked from the same
+    // start page is still discovered — the crawl must not abort entirely.
+    const pages = await crawlSite(`${server.url}/crawler-start.html`);
+    const names = pages.map((u) => new URL(u).pathname).sort();
+    // about.html itself links onward to contact.html/index.html, so those
+    // are reached too — the key assertion is crawler-flaky.html appears
+    // (visited despite its own extraction failure) and the crawl didn't
+    // abort before discovering everything reachable around it.
+    assert.deepEqual(names, [
+      '/about.html',
+      '/contact.html',
+      '/crawler-flaky.html',
+      '/crawler-start.html',
+      '/index.html',
+    ]);
+  } finally {
+    await server.close();
+  }
+});
+
 test('crawlSite respects maxPages cap', async () => {
   const server = await startLocalServer(fixtureDir);
   try {

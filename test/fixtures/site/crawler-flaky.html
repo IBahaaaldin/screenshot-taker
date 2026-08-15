@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+<head>
+  <title>Crawler Flaky Fixture</title>
+  <script>
+    // Simulate a page whose execution context is unavailable by the time
+    // the crawler tries to extract its outgoing links — e.g. a real site
+    // that kicks off a client-side redirect/re-render right after 'load'.
+    // Overriding querySelectorAll deterministically reproduces the same
+    // failure page.$$eval('a[href]', ...) would hit, without relying on
+    // real navigation timing.
+    document.querySelectorAll = function (selector) {
+      if (selector === 'a[href]') {
+        throw new Error('Execution context was destroyed, most likely because of a navigation');
+      }
+      return Document.prototype.querySelectorAll.call(document, selector);
+    };
+  </script>
+</head>
+<body>
+  <p>This page's own link discovery always fails.</p>
+</body>
+</html>
