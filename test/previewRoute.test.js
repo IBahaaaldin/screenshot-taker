@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import express from 'express';
+import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startLocalServer } from '../src/localServer.js';
@@ -37,6 +38,41 @@ test('GET /api/preview/page proxies and rewrites a real page', async () => {
     });
   } finally {
     await fixtureServer.close();
+  }
+});
+
+function startFramingHeaderServer() {
+  return new Promise((resolve) => {
+    const server = http.createServer((req, res) => {
+      res.writeHead(200, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'X-Frame-Options': 'DENY',
+        'Content-Security-Policy': "frame-ancestors 'none'",
+      });
+      res.end('<!doctype html><html><body>framed origin</body></html>');
+    });
+    server.listen(0, '127.0.0.1', () => {
+      const { port } = server.address();
+      resolve({
+        url: `http://127.0.0.1:${port}`,
+        close: () => new Promise((res2) => server.close(res2)),
+      });
+    });
+  });
+}
+
+test('GET /api/preview/page strips upstream framing headers instead of forwarding them', async () => {
+  const headerServer = await startFramingHeaderServer();
+  try {
+    await withApp(async (base) => {
+      const target = `${headerServer.url}/`;
+      const res = await fetch(`${base}/api/preview/page?url=${encodeURIComponent(target)}`);
+      assert.equal(res.status, 200);
+      assert.equal(res.headers.get('x-frame-options'), null);
+      assert.equal(res.headers.get('content-security-policy'), null);
+    });
+  } finally {
+    await headerServer.close();
   }
 });
 
