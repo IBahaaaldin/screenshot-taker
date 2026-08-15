@@ -5,6 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
+import sharp from 'sharp';
 import { startLocalServer } from '../src/localServer.js';
 import { captureAllViewports } from '../src/screenshot.js';
 
@@ -68,6 +69,35 @@ test('captureAllViewports does not abort the whole run when one viewport fails d
         assert.ok(stat.size > 0, `${filePath} should be non-empty`);
       }
     }
+  } finally {
+    await browser.close();
+    await server.close();
+    await fs.rm(outputDir, { recursive: true, force: true });
+  }
+});
+
+test('a screenshot taken mid fade-in transition is retried and captures the settled content', async () => {
+  const server = await startLocalServer(fixtureDir);
+  const browser = await chromium.launch();
+  const outputDir = await fs.mkdtemp(path.join(os.tmpdir(), 'shot-test-blank-'));
+  try {
+    // blank-transition.html's hero content fades in ~700ms after load, so
+    // an immediate screenshot lands on the near-solid background color —
+    // captureAllViewports should detect that and retry once, landing on
+    // the settled (visibly varied) content instead.
+    const result = await captureAllViewports(browser, `${server.url}/blank-transition.html`, {
+      mode: 'full-page',
+      selectors: [],
+      outputDir,
+    });
+
+    const desktop = result.find((r) => r.viewport === 'desktop');
+    assert.equal(desktop.sections.length, 1);
+    const { channels } = await sharp(desktop.sections[0].path).stats();
+    assert.ok(
+      channels.some((channel) => channel.stdev >= 4),
+      'retried screenshot should show visible pixel variance from the settled content, not a flat color'
+    );
   } finally {
     await browser.close();
     await server.close();

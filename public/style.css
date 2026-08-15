@@ -799,6 +799,10 @@ body.recording-mode .preview-stage {
   display: none;
 }
 
+.record-result .download-chip {
+  margin-left: 0;
+}
+
 .record-result video {
   width: 100%;
   max-width: 420px;

@@ -1,0 +1,18 @@
+<!doctype html>
+<html>
+<head><title>Fixture Blank Transition</title></head>
+<body>
+  <section id="hero" style="height:400px;background:#3366cc;">
+    <div id="hero-content" style="opacity:0;transition:opacity 0.01s;">
+      <h1>Hero Content</h1>
+      <p>This text fades in shortly after load, simulating a carousel/hero
+         slide transition that a too-early screenshot would miss.</p>
+    </div>
+  </section>
+  <script>
+    setTimeout(() => {
+      document.getElementById('hero-content').style.opacity = '1';
+    }, 700);
+  </script>
+</body>
+</html>

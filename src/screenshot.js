@@ -1,10 +1,16 @@
 // src/screenshot.js
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import sharp from 'sharp';
 import { VIEWPORTS } from './viewports.js';
 import { detectSections } from './sectionDetector.js';
 
 const INITIAL_VIEWPORT_HEIGHT = 1000;
+// A screenshot taken mid-transition (e.g. a hero carousel slide still
+// fading in) often lands as a near-uniform color — very low per-channel
+// stdev. One retry after a short wait catches the common case cheaply.
+const BLANK_STDEV_THRESHOLD = 4;
+const BLANK_RETRY_WAIT_MS = 500;
 
 export async function captureAllViewports(browser, pageUrl, { mode, selectors = [], outputDir }) {
   const results = [];
@@ -37,18 +43,23 @@ async function captureOneViewport(browser, pageUrl, viewport, mode, selectors, v
       for (const section of sections) {
         const filePath = path.join(viewportDir, `${section.slug}.png`);
         try {
-          if (section.selector === null) {
-            await page.screenshot({ path: filePath, fullPage: true });
-          } else {
-            // Locator screenshots scroll the element into view and capture
-            // its full bounding box in one shot, so they aren't fooled by
-            // viewport-relative CSS (e.g. `min-height: 100vh`) that would
-            // otherwise change as the viewport resizes. A short explicit
-            // timeout keeps a hidden/zero-size selector match (e.g. a
-            // deliberately-targeted modal or accordion panel) a fast,
-            // contained failure instead of waiting out Playwright's ~30s
-            // default actionability timeout per section per viewport.
-            await page.locator(section.selector).screenshot({ path: filePath, timeout: 5000 });
+          const shoot = () =>
+            section.selector === null
+              ? page.screenshot({ path: filePath, fullPage: true })
+              : // Locator screenshots scroll the element into view and capture
+                // its full bounding box in one shot, so they aren't fooled by
+                // viewport-relative CSS (e.g. `min-height: 100vh`) that would
+                // otherwise change as the viewport resizes. A short explicit
+                // timeout keeps a hidden/zero-size selector match (e.g. a
+                // deliberately-targeted modal or accordion panel) a fast,
+                // contained failure instead of waiting out Playwright's ~30s
+                // default actionability timeout per section per viewport.
+                page.locator(section.selector).screenshot({ path: filePath, timeout: 5000 });
+
+          await shoot();
+          if (await isNearSolidColor(filePath)) {
+            await page.waitForTimeout(BLANK_RETRY_WAIT_MS);
+            await shoot();
           }
           written.push({ slug: section.slug, path: filePath });
         } catch (err) {
@@ -97,4 +108,15 @@ async function gotoWithRetry(page, pageUrl) {
     }
   }
   return false;
+}
+
+async function isNearSolidColor(filePath) {
+  try {
+    const { channels } = await sharp(filePath).stats();
+    return channels.every((channel) => channel.stdev < BLANK_STDEV_THRESHOLD);
+  } catch {
+    // If we can't even read the stats back, don't block on a retry —
+    // the file write itself already succeeded or the outer catch handles it.
+    return false;
+  }
 }
