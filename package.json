@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "archiver": "^7.0.1",
+    "cheerio": "^1.2.0",
     "express": "^4.19.2",
     "localtunnel": "^2.0.2",
     "playwright": "^1.47.0",
@@ -34,12 +35,20 @@
       "icon": "assets/icon.icns",
       "target": "dir"
     },
-    "files": ["src/**/*", "public/**/*", "electron/**/*", "package.json"],
+    "files": [
+      "src/**/*",
+      "public/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
     "extraResources": [
       {
         "from": ".build-playwright-browsers",
         "to": "playwright-browsers",
-        "filter": ["chromium-*/**", "chromium_headless_shell-*/**"]
+        "filter": [
+          "chromium-*/**",
+          "chromium_headless_shell-*/**"
+        ]
       }
     ]
   }
