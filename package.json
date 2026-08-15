@@ -48,7 +48,8 @@
         "to": "playwright-browsers",
         "filter": [
           "chromium-*/**",
-          "chromium_headless_shell-*/**"
+          "chromium_headless_shell-*/**",
+          "ffmpeg-*/**"
         ]
       }
     ],
