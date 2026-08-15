@@ -732,3 +732,115 @@ select {
 }
 
 .dev-badge strong { display: block; color: var(--ink); }
+
+/* ---------------------------------------------------------------
+   Live preview — 4 synced device-bezel iframes. Bezel styling
+   mirrors the composite hero-mockup frames in src/composite.js
+   (Apple Studio Display / MacBook Pro / iPad Pro / iPhone look).
+   ------------------------------------------------------------- */
+
+.preview-stage {
+  position: relative;
+  width: 100%;
+  max-width: 1400px;
+  margin: 2rem auto;
+  height: 900px;
+}
+
+.preview-frame {
+  position: absolute;
+  overflow: hidden;
+  background: #050505;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.35);
+}
+
+.preview-frame iframe {
+  display: block;
+  border: 0;
+  transform-origin: top left;
+}
+
+/* Desktop — Apple Studio Display: near-borderless, light-silver bezel. */
+.preview-frame-desktop {
+  left: 5%;
+  top: 3%;
+  width: 55%;
+  height: 55%;
+  border-radius: 16px;
+  border: 7px solid #d9dadc;
+  background: linear-gradient(155deg, #eceeef, #cfd1d3);
+}
+.preview-frame-desktop iframe { width: 1920px; height: 1140px; }
+
+/* Laptop — MacBook Pro: dark aluminum bezel, rounded top corners, notch. */
+.preview-frame-laptop {
+  left: 52%;
+  top: 42%;
+  width: 42%;
+  height: 42%;
+  border-radius: 18px 18px 4px 4px;
+  border: 9px solid #2b2c2e;
+  background: #2b2c2e;
+}
+.preview-frame-laptop iframe { width: 1440px; height: 900px; }
+.preview-frame-notch {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 13%;
+  height: 14px;
+  border-radius: 0 0 8px 8px;
+  background: #050505;
+  z-index: 2;
+}
+
+/* Tablet — iPad Pro: ultra-thin uniform silver bezel, large corner radius. */
+.preview-frame-tablet {
+  left: 15%;
+  top: 55%;
+  width: 22%;
+  height: 38%;
+  border-radius: 22px;
+  border: 8px solid #d3d4d6;
+  background: linear-gradient(155deg, #e7e8ea, #c3c5c7);
+}
+.preview-frame-tablet iframe { width: 768px; height: 1024px; }
+
+/* Mobile — iPhone: titanium frame, Dynamic Island, home indicator. */
+.preview-frame-mobile {
+  left: 38%;
+  top: 62%;
+  width: 12%;
+  height: 32%;
+  border-radius: 42px;
+  border: 6px solid #948d84;
+  background: linear-gradient(155deg, #a79f95, #857d73);
+}
+.preview-frame-mobile iframe { width: 390px; height: 844px; }
+.preview-frame-island {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 34%;
+  height: 14px;
+  border-radius: 999px;
+  background: #050505;
+  z-index: 2;
+}
+.preview-frame-home {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40%;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.55);
+  z-index: 2;
+}
+
+.preview-limitation-note {
+  margin-top: 0.75rem;
+}
