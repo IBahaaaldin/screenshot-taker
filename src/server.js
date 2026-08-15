@@ -18,7 +18,7 @@ export function createApp({ outputRoot = path.join(__dirname, '..', 'output'), p
   app.use(express.json());
   app.use('/api', createRunRouter({ outputRoot, runs }));
   app.use('/api', createPostQueueRouter({ outputRoot, deps: postQueueDeps }));
-  app.use('/api', createPreviewRouter());
+  app.use('/api', createPreviewRouter({ outputRoot }));
   app.use('/output', express.static(outputRoot));
   app.use(express.static(path.join(__dirname, '..', 'public')));
 

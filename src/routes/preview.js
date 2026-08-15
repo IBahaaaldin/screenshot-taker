@@ -1,5 +1,9 @@
 import express from 'express';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import crypto from 'node:crypto';
 import { rewritePageHtml, rewriteCssUrls } from '../previewProxy.js';
+import { recordSitePreview } from '../screenRecorder.js';
 
 const FETCH_TIMEOUT_MS = 15000;
 const CACHE_TTL_MS = 30000;
@@ -52,7 +56,7 @@ function parseTargetUrl(raw) {
   return url;
 }
 
-export function createPreviewRouter() {
+export function createPreviewRouter({ outputRoot } = {}) {
   const router = express.Router();
 
   router.get('/preview/page', async (req, res) => {
@@ -113,6 +117,35 @@ export function createPreviewRouter() {
       res.status(upstream.status).set('Content-Type', contentType).send(buffer);
     } catch (err) {
       res.status(502).json({ error: `Failed to fetch preview asset: ${err.message}` });
+    }
+  });
+
+  router.post('/preview/record', async (req, res) => {
+    const target = parseTargetUrl(req.body?.url);
+    if (!target) {
+      res.status(400).json({ error: 'Provide a valid http(s) url in the request body' });
+      return;
+    }
+    if (!outputRoot) {
+      res.status(500).json({ error: 'Recording is not configured (missing outputRoot)' });
+      return;
+    }
+    try {
+      const recordingsDir = path.join(outputRoot, 'recordings');
+      const previewBaseUrl = `${req.protocol}://${req.get('host')}`;
+      const { mp4Path, durationMs } = await recordSitePreview({
+        url: target.href,
+        previewBaseUrl,
+        outputDir: recordingsDir,
+      });
+      const finalName = `${crypto.randomUUID()}.mp4`;
+      const finalPath = path.join(recordingsDir, finalName);
+      if (path.resolve(mp4Path) !== path.resolve(finalPath)) {
+        await fs.rename(mp4Path, finalPath);
+      }
+      res.status(200).json({ downloadUrl: `/output/recordings/${finalName}`, durationMs });
+    } catch (err) {
+      res.status(502).json({ error: `Failed to record preview: ${err.message}` });
     }
   });
 
