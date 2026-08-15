@@ -16,6 +16,14 @@ const iframes = {
   mobile: document.getElementById('preview-iframe-mobile'),
 };
 
+const recordBtn = document.getElementById('record-video-btn');
+const recordResult = document.getElementById('record-result');
+const recordVideo = document.getElementById('record-video');
+const recordDownload = document.getElementById('record-download');
+const recordError = document.getElementById('record-error');
+
+let currentPreviewUrl = null;
+
 function proxiedPageUrl(targetUrl) {
   return `/api/preview/page?url=${encodeURIComponent(targetUrl)}`;
 }
@@ -53,10 +61,12 @@ function scaleFramesToFit() {
 }
 
 function loadAll(targetUrl) {
+  currentPreviewUrl = targetUrl;
   for (const key of Object.keys(iframes)) {
     iframes[key].src = proxiedPageUrl(targetUrl);
   }
   stage.hidden = false;
+  recordBtn.disabled = false;
   scaleFramesToFit();
 }
 
@@ -96,6 +106,38 @@ form.addEventListener('submit', (e) => {
   }
   clearUrlError();
   loadAll(normalized);
+});
+
+recordBtn.addEventListener('click', async () => {
+  if (!currentPreviewUrl) return;
+  recordError.hidden = true;
+  recordResult.hidden = true;
+  recordBtn.disabled = true;
+  recordBtn.classList.add('is-loading');
+  const labelEl = recordBtn.querySelector('.shutter-label');
+  const originalLabel = labelEl.textContent;
+  labelEl.textContent = 'Recording… ~15s';
+  try {
+    const res = await fetch('/api/preview/record', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: currentPreviewUrl }),
+    });
+    const body = await res.json();
+    if (!res.ok) {
+      throw new Error(body.error || 'Recording failed');
+    }
+    recordVideo.src = body.downloadUrl;
+    recordDownload.href = body.downloadUrl;
+    recordResult.hidden = false;
+  } catch (err) {
+    recordError.textContent = err.message;
+    recordError.hidden = false;
+  } finally {
+    recordBtn.disabled = false;
+    recordBtn.classList.remove('is-loading');
+    labelEl.textContent = originalLabel;
+  }
 });
 
 const params = new URLSearchParams(window.location.search);

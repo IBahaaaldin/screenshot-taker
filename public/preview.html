@@ -6,7 +6,7 @@
   <title>Live Preview — Screenshot Taker</title>
   <link rel="stylesheet" href="style.css" />
 </head>
-<body>
+<body id="preview-page">
 
   <nav>
     <div class="nav-logo">
@@ -42,6 +42,10 @@
           <span class="shutter-label">Load preview</span>
         </button>
       </form>
+      <button type="button" id="record-video-btn" class="frame-post-btn" disabled>
+        <span class="shutter-ring"></span>
+        <span class="shutter-label">Record video</span>
+      </button>
       <p class="field-hint preview-limitation-note">
         Works best on standard multi-page sites — heavily JS-driven single-page apps may not preview perfectly.
       </p>
@@ -64,6 +68,12 @@
         <span class="preview-frame-home" aria-hidden="true"></span>
       </div>
     </div>
+
+    <div id="record-result" class="record-result" hidden>
+      <video id="record-video" controls></video>
+      <a id="record-download" href="#" download class="download-chip">Download video</a>
+    </div>
+    <p id="record-error" class="field-error" hidden></p>
   </main>
 
   <script src="preview.js"></script>
