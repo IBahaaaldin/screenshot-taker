@@ -131,7 +131,8 @@ recordBtn.addEventListener('click', async () => {
     recordDownload.href = body.downloadUrl;
     recordResult.hidden = false;
   } catch (err) {
-    recordError.textContent = err.message;
+    const firstLine = String(err.message).split('\n')[0].trim();
+    recordError.textContent = firstLine || 'Recording failed';
     recordError.hidden = false;
   } finally {
     recordBtn.disabled = false;
