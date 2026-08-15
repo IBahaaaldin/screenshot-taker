@@ -48,6 +48,20 @@ Then open [http://localhost:3000](http://localhost:3000).
 - **Local folder** — paste the absolute path to a folder containing your site's
   `index.html`; it's served locally for you automatically.
 
+## Live preview
+
+Before (or without) running a full capture, you can preview any site live
+at all 4 device sizes at once: open the "Live Preview" link in the nav, or
+click "Preview live" next to the Source URL field on the run form. All 4
+frames scroll and navigate together, like standing in front of the real
+site at every screen size simultaneously.
+
+This works by proxying the target page through the app's own server so it
+can be embedded (many sites block being framed directly). It works best on
+standard multi-page sites — heavily JS-driven single-page apps may not
+preview perfectly, since the proxy rewrites links/assets rather than
+executing arbitrary client-side routing logic.
+
 ## Desktop app (macOS)
 
 Screenshot Taker can also run as a real double-clickable `.app` — no terminal, no
