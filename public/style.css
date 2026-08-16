@@ -794,7 +794,14 @@ body#preview-page .dev-card {
   width: 100%;
   max-width: 1400px;
   margin: 2rem auto;
-  height: 900px;
+  /* Fixed 900px overflowed the default window height — nav + hero push the
+     stage's top down ~320px, so on a typical 900px-tall window the bottom
+     third of the cluster (mobile, the lowest-positioned device) landed
+     below the fold entirely, making it impossible to hover/scroll. Shrink
+     to fit whatever vertical space remains below the fold, capped at 900px
+     on tall windows. */
+  height: min(900px, calc(100vh - 340px));
+  min-height: 480px;
 }
 
 /* Recording mode: hide all page chrome so #preview-stage is the only thing
@@ -810,6 +817,10 @@ body.recording-mode .preview-limitation-note {
 
 body.recording-mode .preview-stage {
   margin: 0 auto;
+  /* Recording mode hides nav/hero and screenRecorder.js drives a fixed
+     1400x900 Playwright viewport expecting the stage to fill it exactly —
+     the min(...) shrink above is only for the normal browsing layout. */
+  height: 900px;
 }
 
 .record-result {
