@@ -782,7 +782,8 @@ body#preview-page main {
    but that width shouldn't stretch the hero text or form cards below it —
    they stay at the original, narrower reading width. */
 body#preview-page .hero,
-body#preview-page .card {
+body#preview-page .card,
+body#preview-page .dev-card {
   max-width: 760px;
   margin-left: auto;
   margin-right: auto;
