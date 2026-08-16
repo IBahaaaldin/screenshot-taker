@@ -173,7 +173,7 @@ function renderHtml(entries, dataUrls) {
   .mobile-island {
     position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
     width: 34%; height: 20px; border-radius: 999px;
-    background: #050505; z-index: 2;
+    background: #050505; box-shadow: 0 0 0 1px rgba(255,255,255,0.14); z-index: 2;
   }
   .mobile-home {
     position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);

@@ -967,6 +967,11 @@ body.recording-mode .preview-stage {
   height: 14px;
   border-radius: 999px;
   background: #050505;
+  /* A near-black pill on the target site's own dark content can be
+     invisible without this — the ring keeps it legible against any page
+     background, matching how a real Dynamic Island stays visible via the
+     physical bezel gap around it. */
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14);
   z-index: 2;
 }
 .preview-frame-home {
