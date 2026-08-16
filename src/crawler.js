@@ -56,18 +56,20 @@ function normalize(url) {
 
 // Sites with product/blog/category listings can have hundreds of near-
 // identical detail pages (same template, different slug) — e.g.
-// /products/liquid-detergent, /products/dish-wash, /products/bleach.
-// Capturing every single one wastes time and clutters the gallery with
-// duplicates. Pages nested 3+ levels deep are grouped by their parent
-// path, keeping only the first one found per group. Shallow pages
-// (depth <= 2, e.g. /about, /products) are never deduped — those are
-// distinct top-level or listing pages, not templated detail pages.
+// /products/liquid-detergent, /products/dish-wash, /products/bleach, or
+// (shallower, but the same shape) /customers/openai, /customers/ramp,
+// /changelog/2026-08-13-team-initiatives. Capturing every single one
+// wastes time and clutters the gallery with duplicates. Pages nested 2+
+// levels deep are grouped by their parent path, keeping only the first
+// one found per group. Only depth-1 pages (e.g. /about, /products, the
+// listing page itself) are never deduped — those are each other's
+// siblings under an empty/shared parent key and must stay distinct.
 export function dedupeTemplatePages(urls) {
   const seen = new Set();
   const kept = [];
   for (const url of urls) {
     const segments = new URL(url).pathname.split('/').filter(Boolean);
-    if (segments.length < 3) {
+    if (segments.length < 2) {
       kept.push(url);
       continue;
     }

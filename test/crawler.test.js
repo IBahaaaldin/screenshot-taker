@@ -54,7 +54,7 @@ test('crawlSite respects maxPages cap', async () => {
   }
 });
 
-test('dedupeTemplatePages keeps shallow pages (depth <= 2) untouched', () => {
+test('dedupeTemplatePages keeps shallow pages (depth <= 1) untouched', () => {
   const urls = [
     'https://example.com/',
     'https://example.com/about',
@@ -88,4 +88,28 @@ test('dedupeTemplatePages does not collapse distinct listing pages with their ow
     'https://example.com/en/products',
     'https://example.com/en/products/liquid-detergent',
   ]);
+});
+
+test('dedupeTemplatePages keeps only the first page per parent-path group at depth 2 (e.g. /customers/<name>)', () => {
+  const urls = [
+    'https://linear.app/customers/openai',
+    'https://linear.app/customers/ramp',
+    'https://linear.app/customers/opendoor',
+    'https://linear.app/changelog/2026-08-13-team-initiatives',
+    'https://linear.app/changelog/2026-07-30-coding-sessions-on-mobile',
+  ];
+  assert.deepEqual(dedupeTemplatePages(urls), [
+    'https://linear.app/customers/openai',
+    'https://linear.app/changelog/2026-08-13-team-initiatives',
+  ]);
+});
+
+test('dedupeTemplatePages does not collapse distinct depth-1 pages sharing an empty parent', () => {
+  const urls = [
+    'https://linear.app/customers',
+    'https://linear.app/changelog',
+    'https://linear.app/docs',
+    'https://linear.app/login',
+  ];
+  assert.deepEqual(dedupeTemplatePages(urls), urls);
 });
