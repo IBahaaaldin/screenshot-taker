@@ -13,10 +13,10 @@ const CANVAS_HEIGHT = 1200;
 // tablet+phone cluster overlapping its bottom-left. Values are hand-tuned
 // pixel positions/sizes within the CANVAS_WIDTH x CANVAS_HEIGHT stage.
 const LAYOUT = {
-  desktop: { x: 480, y: 60, w: 900, h: 560, z: 1 },
-  laptop: { x: 1020, y: 480, w: 900, h: 460, z: 2 },
-  tablet: { x: 330, y: 420, w: 340, h: 440, z: 3 },
-  mobile: { x: 600, y: 560, w: 190, h: 400, z: 4 },
+  desktop: { x: 525, y: 130, w: 770, h: 480, z: 1 },
+  laptop: { x: 1060, y: 540, w: 820, h: 410, z: 2 },
+  tablet: { x: 400, y: 480, w: 300, h: 390, z: 3 },
+  mobile: { x: 640, y: 640, w: 165, h: 350, z: 4 },
 };
 
 export async function buildComposite(browser, imagesByViewport, outputPath) {

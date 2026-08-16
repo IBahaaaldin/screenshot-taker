@@ -1,0 +1,26 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "screenshot-taker",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["start"],
+      "port": 3000,
+      "autoPort": true
+    },
+    {
+      "name": "instagram-posting-phase2",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", ".worktrees/instagram-posting-phase2", "start"],
+      "port": 3000,
+      "autoPort": true
+    },
+    {
+      "name": "split-crop",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", ".worktrees/split-crop", "start"],
+      "port": 3000,
+      "autoPort": true
+    }
+  ]
+}

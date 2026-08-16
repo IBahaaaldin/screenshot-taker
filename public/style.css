@@ -838,13 +838,13 @@ body.recording-mode .preview-stage {
 }
 
 /* Desktop — iMac-style all-in-one: light-silver bezel, centered near the
-   top, matching src/composite.js's LAYOUT (x480 y60 w900 h560 of a
+   top, matching src/composite.js's LAYOUT (x525 y130 w770 h480 of a
    2000x1200 stage). */
 .preview-frame-desktop {
-  left: 24%;
-  top: 5%;
-  width: 45%;
-  height: 46.67%;
+  left: 26.25%;
+  top: 10.83%;
+  width: 38.5%;
+  height: 40%;
   border-radius: 16px;
   border: 7px solid #d9dadc;
   background: linear-gradient(155deg, #eceeef, #cfd1d3);
@@ -857,32 +857,32 @@ body.recording-mode .preview-stage {
    .desktop-neck/.desktop-foot. */
 .preview-frame-desktop-neck {
   position: absolute;
-  left: 46.5%;
-  top: 51.67%;
+  left: 45.5%;
+  top: 50.83%;
   transform: translateX(-50%);
-  width: 7.65%;
+  width: 6.5%;
   height: 6.67%;
   background: linear-gradient(90deg, #b9bbbd, #eceeef 45%, #b9bbbd);
   clip-path: polygon(18% 0%, 82% 0%, 100% 100%, 0% 100%);
 }
 .preview-frame-desktop-foot {
   position: absolute;
-  left: 46.5%;
-  top: 58.33%;
+  left: 45.5%;
+  top: 57.5%;
   transform: translateX(-50%);
-  width: 14.4%;
+  width: 12.3%;
   height: 1.33%;
   border-radius: 50%;
   background: linear-gradient(180deg, #dcdddf, #b6b8ba);
 }
 
 /* Laptop — MacBook Pro: dark aluminum bezel, rounded top corners, notch.
-   Matches composite.js's LAYOUT (x1020 y480 w900 h460). */
+   Matches composite.js's LAYOUT (x1060 y540 w820 h410). */
 .preview-frame-laptop {
-  left: 51%;
-  top: 40%;
-  width: 45%;
-  height: 38.33%;
+  left: 53%;
+  top: 45%;
+  width: 41%;
+  height: 34.17%;
   border-radius: 18px 18px 4px 4px;
   border: 9px solid #2b2c2e;
   background: #2b2c2e;
@@ -906,9 +906,9 @@ body.recording-mode .preview-stage {
 .preview-frame-deck {
   position: absolute;
   left: 73.5%;
-  top: 78.33%;
+  top: 79.17%;
   transform: translateX(-50%);
-  width: 51.75%;
+  width: 47%;
   height: 3.4%;
   border-radius: 0 0 10px 10px;
   background: linear-gradient(180deg, #e4e5e7, #b9bbbd);
@@ -935,12 +935,12 @@ body.recording-mode .preview-stage {
 }
 
 /* Tablet — iPad Pro: ultra-thin uniform silver bezel, large corner radius.
-   Matches composite.js's LAYOUT (x330 y420 w340 h440). */
+   Matches composite.js's LAYOUT (x400 y480 w300 h390). */
 .preview-frame-tablet {
-  left: 16.5%;
-  top: 35%;
-  width: 17%;
-  height: 36.67%;
+  left: 20%;
+  top: 40%;
+  width: 15%;
+  height: 32.5%;
   border-radius: 22px;
   border: 8px solid #d3d4d6;
   background: linear-gradient(155deg, #e7e8ea, #c3c5c7);
@@ -961,12 +961,12 @@ body.recording-mode .preview-stage {
 .preview-frame-tablet iframe { width: 768px; height: 1024px; }
 
 /* Mobile — iPhone: titanium frame, Dynamic Island, home indicator.
-   Matches composite.js's LAYOUT (x600 y560 w190 h400). */
+   Matches composite.js's LAYOUT (x640 y640 w165 h350). */
 .preview-frame-mobile {
-  left: 30%;
-  top: 46.67%;
-  width: 9.5%;
-  height: 33.33%;
+  left: 32%;
+  top: 53.33%;
+  width: 8.25%;
+  height: 29.17%;
   border-radius: 42px;
   border: 6px solid #948d84;
   background: linear-gradient(155deg, #a79f95, #857d73);
