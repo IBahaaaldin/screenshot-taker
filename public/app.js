@@ -1,9 +1,10 @@
 // public/app.js
 const form = document.getElementById('run-form');
 const sourceType = document.getElementById('sourceType');
-const sourceLabel = document.getElementById('sourceLabel');
 const sourceValue = document.getElementById('sourceValue');
-const previewLiveBtn = document.getElementById('preview-live-btn');
+const sourceUrlReadout = document.getElementById('sourceUrlReadout');
+const sourceUrlValue = document.getElementById('sourceUrlValue');
+const previewUrlInput = document.getElementById('preview-url');
 const modeSelect = document.getElementById('mode');
 const selectorsRow = document.getElementById('selectorsRow');
 const submitBtn = document.getElementById('submit-btn');
@@ -32,21 +33,24 @@ const captionError = document.getElementById('caption-error');
 
 let pendingPost = null; // { siteName, pageUrl, kind, images } awaiting caption confirmation
 
-const SOURCE_PLACEHOLDERS = {
-  url: { label: 'Source URL', placeholder: 'https://example.com' },
-  localFolder: { label: 'Local folder path', placeholder: '/Users/you/projects/my-site' },
-};
-
-function updatePreviewBtnState() {
-  previewLiveBtn.disabled = sourceType.value !== 'url';
+// "Live URL" reuses whatever is currently loaded in the live preview above
+// (no second URL field to keep in sync by hand); "Local folder" needs its
+// own real path input, since that's never something the live preview can
+// show.
+function syncSourceUrlReadout() {
+  sourceUrlValue.textContent = previewUrlInput.value.trim() || '(load a preview above first)';
 }
 
-sourceType.addEventListener('change', () => {
-  const cfg = SOURCE_PLACEHOLDERS[sourceType.value];
-  sourceLabel.textContent = cfg.label;
-  sourceValue.placeholder = cfg.placeholder;
-  updatePreviewBtnState();
-});
+function updateSourceFields() {
+  const isUrl = sourceType.value === 'url';
+  sourceUrlReadout.hidden = !isUrl;
+  sourceValue.hidden = isUrl;
+  sourceValue.required = !isUrl;
+  if (isUrl) syncSourceUrlReadout();
+}
+
+sourceType.addEventListener('change', updateSourceFields);
+previewUrlInput?.addEventListener('input', syncSourceUrlReadout);
 
 modeSelect.addEventListener('change', () => {
   selectorsRow.hidden = modeSelect.value !== 'selectors';
@@ -73,7 +77,7 @@ form.addEventListener('submit', async (e) => {
     autoPost: document.getElementById('autoPost').checked,
   };
   if (sourceType.value === 'url') {
-    body.url = sourceValue.value;
+    body.url = previewUrlInput.value.trim();
   } else {
     body.localFolder = sourceValue.value;
   }
@@ -500,19 +504,5 @@ galleryCollapseAll.addEventListener('click', () => {
   }
 });
 
-previewLiveBtn?.addEventListener('click', () => {
-  const value = sourceValue.value.trim();
-  if (!value) {
-    sourceValue.focus();
-    return;
-  }
-  const previewUrlInput = document.getElementById('preview-url');
-  const previewForm = document.getElementById('preview-form');
-  if (!previewUrlInput || !previewForm) return;
-  previewUrlInput.value = value;
-  previewForm.requestSubmit();
-  previewUrlInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-});
-
-updatePreviewBtnState();
+updateSourceFields();
 refreshQueue();

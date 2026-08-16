@@ -225,6 +225,20 @@ select {
   .source-row { grid-template-columns: 1fr; }
 }
 
+/* Short, single-line fields (site name, section detection) sit side by
+   side instead of each claiming the card's full width. */
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+@media (max-width: 540px) {
+  .field-row { grid-template-columns: 1fr; }
+}
+
+.field-compact-select { max-width: 100%; }
+
 /* ---------------------------------------------------------------
    Primary button
    ------------------------------------------------------------- */

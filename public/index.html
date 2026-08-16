@@ -36,6 +36,11 @@
   </nav>
 
   <main>
+    <div class="hero">
+      <h1>Screenshot every screen. <span>Ready to post.</span></h1>
+      <p>Preview any site live across 4 devices, then point the crawler at it and walk away with a contact sheet — every section, every device size, framed and ready for Instagram.</p>
+    </div>
+
     <div id="preview-stage" class="preview-stage">
       <div class="preview-frame preview-frame-desktop">
         <iframe id="preview-iframe-desktop" title="Desktop preview" sandbox="allow-scripts allow-forms"></iframe>
@@ -55,11 +60,6 @@
         <iframe id="preview-iframe-mobile" title="Mobile preview" sandbox="allow-scripts allow-forms"></iframe>
         <span class="preview-frame-home" aria-hidden="true"></span>
       </div>
-    </div>
-
-    <div class="hero">
-      <h1>Screenshot every screen. <span>Ready to post.</span></h1>
-      <p>Preview any site live across 4 devices, then point the crawler at it and walk away with a contact sheet — every section, every device size, framed and ready for Instagram.</p>
     </div>
 
     <div class="card">
@@ -101,31 +101,31 @@
       </div>
 
       <form id="run-form" class="control-panel" novalidate>
-        <div class="field">
-          <label for="siteName">Site name</label>
-          <input type="text" id="siteName" name="siteName" required placeholder="baba-ganoush" autocomplete="off" />
-          <span class="field-hint">Used for the output folder — letters, numbers, dots, dashes.</span>
+        <div class="field-row">
+          <div class="field field-compact">
+            <label for="siteName">Site name</label>
+            <input type="text" id="siteName" name="siteName" required placeholder="baba-ganoush" autocomplete="off" />
+            <span class="field-hint">Output folder name — letters, numbers, dots, dashes.</span>
+          </div>
+
+          <div class="field field-compact">
+            <label for="mode">Section detection</label>
+            <select id="mode" name="mode">
+              <option value="auto">Auto-detect sections</option>
+              <option value="selectors">CSS selector list</option>
+              <option value="full-page">Full page only</option>
+            </select>
+          </div>
         </div>
 
         <div class="field field-source">
-          <label for="sourceValue"><span id="sourceLabel">Source URL</span></label>
-          <div class="source-row">
-            <select id="sourceType" name="sourceType" aria-label="Source type">
-              <option value="url">Live URL</option>
-              <option value="localFolder">Local folder</option>
-            </select>
-            <input type="text" id="sourceValue" name="sourceValue" required placeholder="https://example.com" autocomplete="off" />
-          </div>
-          <button type="button" id="preview-live-btn" class="frame-post-btn">Preview this URL above</button>
-        </div>
-
-        <div class="field">
-          <label for="mode">Section detection</label>
-          <select id="mode" name="mode">
-            <option value="auto">Auto-detect sections</option>
-            <option value="selectors">CSS selector list</option>
-            <option value="full-page">Full page only</option>
+          <label for="sourceType"><span id="sourceLabel">Source</span></label>
+          <select id="sourceType" name="sourceType" aria-label="Source type" class="field-compact-select">
+            <option value="url">Live URL — same as the live preview above</option>
+            <option value="localFolder">Local folder</option>
           </select>
+          <p class="field-hint" id="sourceUrlReadout">Using: <span id="sourceUrlValue">—</span></p>
+          <input type="text" id="sourceValue" name="sourceValue" placeholder="/Users/you/projects/my-site" autocomplete="off" hidden />
         </div>
 
         <div class="field" id="selectorsRow" hidden>
