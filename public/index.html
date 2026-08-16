@@ -36,6 +36,27 @@
   </nav>
 
   <main>
+    <div id="preview-stage" class="preview-stage">
+      <div class="preview-frame preview-frame-desktop">
+        <iframe id="preview-iframe-desktop" title="Desktop preview" sandbox="allow-scripts allow-forms"></iframe>
+      </div>
+      <span class="preview-frame-desktop-neck" aria-hidden="true"></span>
+      <span class="preview-frame-desktop-foot" aria-hidden="true"></span>
+      <div class="preview-frame preview-frame-laptop">
+        <span class="preview-frame-notch" aria-hidden="true"></span>
+        <iframe id="preview-iframe-laptop" title="Laptop preview" sandbox="allow-scripts allow-forms"></iframe>
+      </div>
+      <span class="preview-frame-deck" aria-hidden="true"></span>
+      <div class="preview-frame preview-frame-tablet">
+        <iframe id="preview-iframe-tablet" title="Tablet preview" sandbox="allow-scripts allow-forms"></iframe>
+      </div>
+      <div class="preview-frame preview-frame-mobile">
+        <span class="preview-frame-island" aria-hidden="true"></span>
+        <iframe id="preview-iframe-mobile" title="Mobile preview" sandbox="allow-scripts allow-forms"></iframe>
+        <span class="preview-frame-home" aria-hidden="true"></span>
+      </div>
+    </div>
+
     <div class="hero">
       <h1>Screenshot every screen. <span>Ready to post.</span></h1>
       <p>Preview any site live across 4 devices, then point the crawler at it and walk away with a contact sheet — every section, every device size, framed and ready for Instagram.</p>
@@ -65,27 +86,6 @@
         Works best on standard multi-page sites — heavily JS-driven single-page apps may not preview perfectly.
         Auto-rotating carousels/sliders run independently in each frame, so they can drift out of sync over time.
       </p>
-    </div>
-
-    <div id="preview-stage" class="preview-stage" hidden>
-      <div class="preview-frame preview-frame-desktop">
-        <iframe id="preview-iframe-desktop" title="Desktop preview" sandbox="allow-scripts allow-forms"></iframe>
-      </div>
-      <span class="preview-frame-desktop-neck" aria-hidden="true"></span>
-      <span class="preview-frame-desktop-foot" aria-hidden="true"></span>
-      <div class="preview-frame preview-frame-laptop">
-        <span class="preview-frame-notch" aria-hidden="true"></span>
-        <iframe id="preview-iframe-laptop" title="Laptop preview" sandbox="allow-scripts allow-forms"></iframe>
-      </div>
-      <span class="preview-frame-deck" aria-hidden="true"></span>
-      <div class="preview-frame preview-frame-tablet">
-        <iframe id="preview-iframe-tablet" title="Tablet preview" sandbox="allow-scripts allow-forms"></iframe>
-      </div>
-      <div class="preview-frame preview-frame-mobile">
-        <span class="preview-frame-island" aria-hidden="true"></span>
-        <iframe id="preview-iframe-mobile" title="Mobile preview" sandbox="allow-scripts allow-forms"></iframe>
-        <span class="preview-frame-home" aria-hidden="true"></span>
-      </div>
     </div>
 
     <div id="record-result" class="record-result" hidden>

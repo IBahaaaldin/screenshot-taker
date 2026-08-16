@@ -147,11 +147,15 @@ if (params.get('record') === '1') {
   document.body.classList.add('recording-mode');
 }
 
-const prefill = params.get('url');
-if (prefill) {
-  const normalizedPrefill = normalizeUrl(prefill);
-  if (normalizedPrefill) {
-    urlInput.value = normalizedPrefill;
-    loadAll(normalizedPrefill);
-  }
+// No ?url= means a normal (non-recording) page load — show something live
+// immediately instead of an empty stage, matching the "devices are the
+// first thing you see" goal. Recording mode always supplies its own ?url=
+// explicitly (see src/screenRecorder.js), so this default never fires there.
+const DEFAULT_PREVIEW_URL = 'https://ibahaaaldin.github.io';
+
+const prefill = params.get('url') || DEFAULT_PREVIEW_URL;
+const normalizedPrefill = normalizeUrl(prefill);
+if (normalizedPrefill) {
+  urlInput.value = normalizedPrefill;
+  loadAll(normalizedPrefill);
 }
