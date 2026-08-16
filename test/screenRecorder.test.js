@@ -17,7 +17,7 @@ test('recordSitePreview produces a nonzero-size MP4 with a valid ftyp header', a
   const fixtureServer = await startLocalServer(fixtureDir);
   const outputRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'screenshot-taker-test-'));
 
-  // A minimal app serving preview.html/preview.js/style.css plus the
+  // A minimal app serving index.html/preview.js/style.css plus the
   // preview proxy routes, so recordSitePreview has a real page to visit.
   const app = express();
   app.use('/api', createPreviewRouter({ outputRoot }));
@@ -75,7 +75,7 @@ test('recording mode (?record=1) keeps all 4 device frames fully within the stag
 
   const context = await browser.newContext({ viewport: STAGE_VIEWPORT });
   const page = await context.newPage();
-  const previewUrl = `${previewBaseUrl}/preview.html?url=${encodeURIComponent(`${fixtureServer.url}/index.html`)}&record=1`;
+  const previewUrl = `${previewBaseUrl}/index.html?url=${encodeURIComponent(`${fixtureServer.url}/index.html`)}&record=1`;
   await page.goto(previewUrl, { waitUntil: 'load', timeout: 20000 });
   await page.waitForSelector('#preview-stage:not([hidden])', { timeout: 15000 });
 

@@ -7,14 +7,16 @@ const CANVAS_WIDTH = 2000;
 const CANVAS_HEIGHT = 1200;
 
 // Device frame geometry for the single overlapping "hero mockup" composition
-// (monitor + laptop + tablet + phone layered together, amiresponsive.com
-// style) instead of separate side-by-side labeled boxes. Values are hand
-// -tuned pixel positions/sizes within the CANVAS_WIDTH x CANVAS_HEIGHT stage.
+// (monitor + laptop + tablet + phone layered together) — matches the
+// fireship.dev/amiresponsive reference layout: a centered iMac-style
+// desktop up top, a large laptop overlapping its bottom-right, and a
+// tablet+phone cluster overlapping its bottom-left. Values are hand-tuned
+// pixel positions/sizes within the CANVAS_WIDTH x CANVAS_HEIGHT stage.
 const LAYOUT = {
-  desktop: { x: 480, y: 120, w: 1000, h: 620, z: 1 },
-  laptop: { x: 1120, y: 580, w: 760, h: 470, z: 2 },
-  tablet: { x: 340, y: 680, w: 320, h: 430, z: 3 },
-  mobile: { x: 640, y: 760, w: 200, h: 420, z: 4 },
+  desktop: { x: 525, y: 130, w: 770, h: 480, z: 1 },
+  laptop: { x: 1060, y: 540, w: 820, h: 410, z: 2 },
+  tablet: { x: 400, y: 480, w: 300, h: 390, z: 3 },
+  mobile: { x: 640, y: 640, w: 165, h: 350, z: 4 },
 };
 
 export async function buildComposite(browser, imagesByViewport, outputPath) {
@@ -69,24 +71,40 @@ function renderHtml(entries, dataUrls) {
   .screen { overflow: hidden; background: #050505; }
   .screen img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
 
-  /* Desktop: Apple Studio Display — near-borderless screen, no chin,
-     single center arm mount, small flat foot. */
+  /* Desktop: iMac-style all-in-one — chin bezel with a camera dot, and a
+     single continuous neck-into-foot stand (not a separate thin arm). */
   .desktop-bezel {
     width: 100%; height: 100%;
     border-radius: 16px;
     border: 7px solid #d9dadc;
     background: linear-gradient(155deg, #eceeef, #cfd1d3);
+    display: flex;
+    flex-direction: column;
   }
-  .desktop-bezel .screen { border-radius: 9px; height: 100%; }
-  .desktop-arm {
-    position: absolute; left: 50%; bottom: -64px; transform: translateX(-50%);
-    width: 46px; height: 64px;
-    background: linear-gradient(90deg, #b9bbbd, #e7e8ea 45%, #b9bbbd);
-    border-radius: 4px;
+  .desktop-bezel .screen { border-radius: 9px 9px 0 0; flex: 1 1 auto; min-height: 0; }
+  .desktop-chin {
+    flex: 0 0 30px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
-  .desktop-base {
-    position: absolute; left: 50%; bottom: -76px; transform: translateX(-50%);
-    width: 220px; height: 14px; border-radius: 7px;
+  .desktop-chin::before {
+    content: '';
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #3a3b3d;
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.08);
+  }
+  .desktop-neck {
+    position: absolute; left: 50%; top: 100%; transform: translateX(-50%);
+    width: 17%; height: 80px;
+    background: linear-gradient(90deg, #b9bbbd, #eceeef 45%, #b9bbbd);
+    clip-path: polygon(18% 0%, 82% 0%, 100% 100%, 0% 100%);
+  }
+  .desktop-foot {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    top: calc(100% + 80px);
+    width: 32%; height: 16px; border-radius: 50%;
     background: linear-gradient(180deg, #dcdddf, #b6b8ba);
   }
 
@@ -176,9 +194,12 @@ function frameHtml(name, dataUrl) {
 
   if (name === 'desktop') {
     return `<div class="device" style="${style}">
-      <div class="desktop-bezel"><div class="screen"><img src="${dataUrl}" /></div></div>
-      <div class="desktop-arm"></div>
-      <div class="desktop-base"></div>
+      <div class="desktop-bezel">
+        <div class="screen"><img src="${dataUrl}" /></div>
+        <div class="desktop-chin"></div>
+      </div>
+      <div class="desktop-neck"></div>
+      <div class="desktop-foot"></div>
     </div>`;
   }
 

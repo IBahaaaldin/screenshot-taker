@@ -506,7 +506,12 @@ previewLiveBtn?.addEventListener('click', () => {
     sourceValue.focus();
     return;
   }
-  window.open(`preview.html?url=${encodeURIComponent(value)}`, '_blank', 'noopener');
+  const previewUrlInput = document.getElementById('preview-url');
+  const previewForm = document.getElementById('preview-form');
+  if (!previewUrlInput || !previewForm) return;
+  previewUrlInput.value = value;
+  previewForm.requestSubmit();
+  previewUrlInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
 });
 
 updatePreviewBtnState();

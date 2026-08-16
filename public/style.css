@@ -823,24 +823,52 @@ body.recording-mode .preview-stage {
   transform-origin: top left;
 }
 
-/* Desktop — Apple Studio Display: near-borderless, light-silver bezel. */
+/* Desktop — iMac-style all-in-one: light-silver bezel, centered near the
+   top, matching src/composite.js's LAYOUT (x525 y130 w770 h480 of a
+   2000x1200 stage). */
 .preview-frame-desktop {
-  left: 5%;
-  top: 3%;
-  width: 55%;
-  height: 55%;
+  left: 26.25%;
+  top: 10.83%;
+  width: 38.5%;
+  height: 40%;
   border-radius: 16px;
   border: 7px solid #d9dadc;
   background: linear-gradient(155deg, #eceeef, #cfd1d3);
 }
 .preview-frame-desktop iframe { width: 1920px; height: 1140px; }
 
-/* Laptop — MacBook Pro: dark aluminum bezel, rounded top corners, notch. */
+/* Neck + foot — siblings of .preview-frame-desktop (not children) so they
+   aren't clipped by the frame's own overflow:hidden. A single continuous
+   iMac-style stand instead of a separate thin arm, matching composite.js's
+   .desktop-neck/.desktop-foot. */
+.preview-frame-desktop-neck {
+  position: absolute;
+  left: 45.5%;
+  top: 50.83%;
+  transform: translateX(-50%);
+  width: 6.5%;
+  height: 6.67%;
+  background: linear-gradient(90deg, #b9bbbd, #eceeef 45%, #b9bbbd);
+  clip-path: polygon(18% 0%, 82% 0%, 100% 100%, 0% 100%);
+}
+.preview-frame-desktop-foot {
+  position: absolute;
+  left: 45.5%;
+  top: 57.5%;
+  transform: translateX(-50%);
+  width: 12.3%;
+  height: 1.33%;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #dcdddf, #b6b8ba);
+}
+
+/* Laptop — MacBook Pro: dark aluminum bezel, rounded top corners, notch.
+   Matches composite.js's LAYOUT (x1060 y540 w820 h410). */
 .preview-frame-laptop {
-  left: 52%;
-  top: 42%;
-  width: 42%;
-  height: 42%;
+  left: 53%;
+  top: 45%;
+  width: 41%;
+  height: 34.17%;
   border-radius: 18px 18px 4px 4px;
   border: 9px solid #2b2c2e;
   background: #2b2c2e;
@@ -863,8 +891,8 @@ body.recording-mode .preview-stage {
    left/top/width in composite.js's LAYOUT-driven hero mockup. */
 .preview-frame-deck {
   position: absolute;
-  left: 73%;
-  top: 84%;
+  left: 73.5%;
+  top: 79.17%;
   transform: translateX(-50%);
   width: 47%;
   height: 3.4%;
@@ -892,12 +920,13 @@ body.recording-mode .preview-stage {
   background: #9a9c9e;
 }
 
-/* Tablet — iPad Pro: ultra-thin uniform silver bezel, large corner radius. */
+/* Tablet — iPad Pro: ultra-thin uniform silver bezel, large corner radius.
+   Matches composite.js's LAYOUT (x400 y480 w300 h390). */
 .preview-frame-tablet {
-  left: 15%;
-  top: 55%;
-  width: 22%;
-  height: 38%;
+  left: 20%;
+  top: 40%;
+  width: 15%;
+  height: 32.5%;
   border-radius: 22px;
   border: 8px solid #d3d4d6;
   background: linear-gradient(155deg, #e7e8ea, #c3c5c7);
@@ -917,12 +946,13 @@ body.recording-mode .preview-stage {
 }
 .preview-frame-tablet iframe { width: 768px; height: 1024px; }
 
-/* Mobile — iPhone: titanium frame, Dynamic Island, home indicator. */
+/* Mobile — iPhone: titanium frame, Dynamic Island, home indicator.
+   Matches composite.js's LAYOUT (x640 y640 w165 h350). */
 .preview-frame-mobile {
-  left: 38%;
-  top: 62%;
-  width: 12%;
-  height: 32%;
+  left: 32%;
+  top: 53.33%;
+  width: 8.25%;
+  height: 29.17%;
   border-radius: 42px;
   border: 6px solid #948d84;
   background: linear-gradient(155deg, #a79f95, #857d73);

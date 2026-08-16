@@ -51,8 +51,9 @@ Then open [http://localhost:3000](http://localhost:3000).
 ## Live preview
 
 Before (or without) running a full capture, you can preview any site live
-at all 4 device sizes at once: open the "Live Preview" link in the nav, or
-click "Preview live" next to the Source URL field on the run form. All 4
+at all 4 device sizes at once — it's the first thing on the page. Paste a
+URL and click "Load preview", or fill in the Source URL field further down
+and click "Preview this URL above" to send it up to the live preview. All 4
 frames scroll and navigate together, like standing in front of the real
 site at every screen size simultaneously.
 
@@ -66,7 +67,7 @@ timers (an auto-rotating hero carousel, for example) runs independently
 per frame and can visibly drift out of sync over time — only scrolling and
 clicking are actively synced.
 
-From the live preview page, click "Record video" to get a downloadable
+Click "Record video" to get a downloadable
 MP4 of the same synced 4-device view auto-scrolling through the page — a
 landscape "all 4 devices" walkthrough clip. It's a shareable demo of the
 site, or raw footage to crop/edit into a Reel or Story later, but the

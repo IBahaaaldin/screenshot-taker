@@ -46,7 +46,7 @@ export async function recordSitePreview({ url, previewBaseUrl, outputDir }) {
     });
     const page = await context.newPage();
     try {
-      const previewUrl = `${previewBaseUrl}/preview.html?url=${encodeURIComponent(url)}&record=1`;
+      const previewUrl = `${previewBaseUrl}/index.html?url=${encodeURIComponent(url)}&record=1`;
       await page.goto(previewUrl, { waitUntil: 'load', timeout: 20000 });
       await page.waitForSelector('#preview-stage:not([hidden])', { timeout: 15000 });
       await page.waitForTimeout(SETTLE_WAIT_MS);
