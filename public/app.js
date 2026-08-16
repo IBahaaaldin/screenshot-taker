@@ -1,5 +1,5 @@
 // public/app.js
-const form = document.getElementById('run-form');
+const runForm = document.getElementById('run-form');
 const sourceType = document.getElementById('sourceType');
 const sourceValue = document.getElementById('sourceValue');
 const sourceUrlReadout = document.getElementById('sourceUrlReadout');
@@ -56,7 +56,7 @@ modeSelect.addEventListener('change', () => {
   selectorsRow.hidden = modeSelect.value !== 'selectors';
 });
 
-form.addEventListener('submit', async (e) => {
+runForm.addEventListener('submit', async (e) => {
   e.preventDefault();
 
   progressLog.innerHTML = '';
