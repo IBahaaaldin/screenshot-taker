@@ -50,12 +50,17 @@ function clearUrlError() {
 }
 
 function scaleFramesToFit() {
+  // Uses CSS zoom, not transform: scale — a scaled-via-transform cross-origin
+  // sandboxed iframe silently stops receiving wheel/scroll input in Chromium
+  // (the visual transform doesn't correctly hit-test into the iframe's own
+  // document), which made every device preview look frozen. zoom scales the
+  // rendered layout AND keeps input routing correct.
   for (const [key, config] of Object.entries(DEVICES)) {
     const frame = document.querySelector(`.preview-frame-${key}`);
     const iframe = iframes[key];
     if (!frame || !iframe) continue;
     const scale = frame.clientWidth / config.width;
-    iframe.style.transform = `scale(${scale})`;
+    iframe.style.zoom = scale;
     iframe.style.height = `${frame.clientHeight / scale}px`;
   }
 }
