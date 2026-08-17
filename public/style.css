@@ -789,20 +789,30 @@ body#preview-page .dev-card {
   margin-right: auto;
 }
 
+/* The stage MUST keep src/composite.js's canvas aspect ratio (2000x1200).
+   Every device's left/top/width/height below is a percentage of this box,
+   copied from composite.js's LAYOUT — so any other ratio stretches or
+   squashes all four devices away from the proportions the exported
+   screenshots actually use. A free-height stage was rendering them at
+   ~2.23 instead of 1.67, i.e. visibly squashed.
+
+   Width is whichever is smallest: the container, the 1400px design cap, or
+   the width whose 5:3 height still fits below the fold (nav + hero consume
+   ~340px) — so the whole cluster is always fully visible and never
+   distorted, at any window size. */
 .preview-stage {
   position: relative;
-  width: 100%;
-  max-width: 1400px;
-  margin: 2rem auto;
-  /* Fixed 900px overflowed the default window height — nav + hero push the
-     stage's top down ~320px, so on a typical 900px-tall window the bottom
-     third of the cluster (mobile, the lowest-positioned device) landed
-     below the fold entirely, making it impossible to hover/scroll. Shrink
-     to fit whatever vertical space remains below the fold, capped at 900px
-     on tall windows. */
-  height: min(900px, calc(100vh - 340px));
-  min-height: 480px;
+  margin: 1rem auto 2rem;
+  aspect-ratio: 2000 / 1200;
+  width: min(100%, 1400px, calc((100vh - 300px) * 5 / 3));
 }
+
+/* The device stage is this page's headline element, so give it as much of
+   the fold as possible: tighten the nav/hero spacing above it (the stage's
+   width is height-driven, so every pixel saved here widens the cluster by
+   1.67x). */
+body#preview-page nav { margin-bottom: 22px; }
+body#preview-page .hero { margin-bottom: 12px; }
 
 /* Recording mode: hide all page chrome so #preview-stage is the only thing
    rendered, starting at the top of the page. Triggered by ?record=1, used
@@ -817,10 +827,11 @@ body.recording-mode .preview-limitation-note {
 
 body.recording-mode .preview-stage {
   margin: 0 auto;
-  /* Recording mode hides nav/hero and screenRecorder.js drives a fixed
-     1400x900 Playwright viewport expecting the stage to fill it exactly —
-     the min(...) shrink above is only for the normal browsing layout. */
-  height: 900px;
+  /* Recording mode hides nav/hero, so the full 1400px design width fits —
+     no need for the below-the-fold clamp. Height still comes from the
+     aspect-ratio above (1400 x 840), which fits screenRecorder.js's
+     1400x900 capture viewport. */
+  width: 1400px;
 }
 
 .record-result {
