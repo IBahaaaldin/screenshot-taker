@@ -60,6 +60,11 @@ function scaleFramesToFit() {
     const iframe = iframes[key];
     if (!frame || !iframe) continue;
     const scale = frame.clientWidth / config.width;
+    // Called on load, the stage may not be laid out yet (clientWidth 0),
+    // which yields scale 0 — that would set zoom:0 and blank every device
+    // until something else triggered a resize. Skip and wait for the
+    // ResizeObserver below to fire with a real size.
+    if (!Number.isFinite(scale) || scale <= 0) continue;
     iframe.style.zoom = scale;
     iframe.style.height = `${frame.clientHeight / scale}px`;
   }
@@ -84,21 +89,9 @@ window.addEventListener('message', (event) => {
   const fromDevice = sourceDeviceOf(event.source);
   if (!fromDevice) return;
 
-  // Rebroadcast the source device's scroll position, as a fraction of its
-  // scrollable range, to the other three (see the sync bridge in
-  // src/previewProxy.js for why it's a fraction and not a pixel offset).
-  // No throttling needed here — the sender already coalesces to one message
-  // per animation frame.
-  if (event.data.type === 'preview-scroll' && typeof event.data.fraction === 'number') {
-    for (const key of Object.keys(iframes)) {
-      if (key === fromDevice) continue;
-      iframes[key].contentWindow?.postMessage(
-        { type: 'preview-scroll-to', fraction: event.data.fraction },
-        '*'
-      );
-    }
-  }
-
+  // Scroll is deliberately NOT relayed between devices — each frame scrolls
+  // independently (see src/previewProxy.js). Navigation still is, so all
+  // four devices follow a link click to the same page.
   if (event.data.type === 'preview-nav' && typeof event.data.url === 'string') {
     for (const key of Object.keys(iframes)) {
       iframes[key].src = proxiedPageUrl(event.data.url);
@@ -106,6 +99,13 @@ window.addEventListener('message', (event) => {
   }
 });
 
+// The stage's width is driven by CSS (viewport height, container width), so
+// observe the stage itself rather than only listening for window resizes —
+// that also covers the very first layout, which a resize event doesn't fire
+// for.
+if (typeof ResizeObserver === 'function') {
+  new ResizeObserver(scaleFramesToFit).observe(stage);
+}
 window.addEventListener('resize', scaleFramesToFit);
 
 form.addEventListener('submit', (e) => {

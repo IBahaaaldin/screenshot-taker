@@ -30,10 +30,18 @@ test('rewritePageHtml leaves anchor/mailto/javascript links untouched', async ()
   assert.match(out, /href="javascript:void\(0\)"/);
 });
 
-test('rewritePageHtml injects the sync-bridge script before </body>', async () => {
+test('rewritePageHtml injects the nav bridge script before </body>', async () => {
   const html = `<html><body><p>hi</p></body></html>`;
   const out = await rewritePageHtml(html, 'https://example.com/');
-  assert.match(out, /preview-nav[\s\S]*preview-scroll[\s\S]*<\/body>/);
+  assert.match(out, /preview-nav[\s\S]*<\/body>/);
+});
+
+test('rewritePageHtml does not relay scroll — each device scrolls on its own', async () => {
+  const html = `<html><body><p>hi</p></body></html>`;
+  const out = await rewritePageHtml(html, 'https://example.com/');
+  // The injected bridge must not post or apply cross-device scroll messages.
+  assert.doesNotMatch(out, /postMessage\(\s*\{\s*type:\s*'preview-scroll'/);
+  assert.doesNotMatch(out, /'preview-scroll-to'/);
 });
 
 test('rewriteCssUrls rewrites unquoted, single-, and double-quoted url()', () => {

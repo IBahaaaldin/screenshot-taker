@@ -12,63 +12,16 @@ const SYNC_BRIDGE_SCRIPT = `<script>
     parent.postMessage({ type: 'preview-nav', url: navUrl }, '*');
   }, true);
 
-  // Scroll sync between the four device frames.
+  // No scroll sync: each device frame scrolls on its own, so you can park
+  // the phone on one section while inspecting another on the desktop. Link
+  // clicks still propagate (above) so all four stay on the same page.
   //
-  // Syncs a FRACTION of the scrollable range, not an absolute pixel offset:
-  // each device lays the site out at a different viewport width, so their
-  // content heights differ — the same scrollY shows different sections, and
-  // a short device simply cannot reach a tall one's offset, which desynced
-  // them permanently. A fraction keeps every device on the same part of the
-  // page.
-  //
-  // Echo suppression is time-based. Comparing the resulting scrollY against
-  // the requested one (the previous approach) is unreliable because these
-  // frames are CSS-zoomed, so a programmatic scroll lands a few px off its
-  // target and looked like a fresh user scroll — every device then echoed
-  // every other one, which is what made scrolling feel laggy and fight
-  // itself. A short window after applying a synced scroll is enough: the
-  // resulting scroll event always arrives inside it.
-  var APPLY_WINDOW_MS = 150;
-  var applyingUntil = 0;
-  var pendingFraction = null;
-  var rafId = 0;
-
-  function scrollableRange() {
-    var doc = document.documentElement;
-    var body = document.body;
-    var height = Math.max(
-      doc.scrollHeight,
-      body ? body.scrollHeight : 0
-    );
-    // Never 0 — it's a divisor, and a page shorter than its viewport has no
-    // scrollable range at all.
-    return Math.max(1, height - window.innerHeight);
-  }
-
-  window.addEventListener('message', function (e) {
-    var data = e.data;
-    if (!data || data.type !== 'preview-scroll-to') return;
-    if (typeof data.fraction !== 'number' || !isFinite(data.fraction)) return;
-    applyingUntil = Date.now() + APPLY_WINDOW_MS;
-    window.scrollTo(0, data.fraction * scrollableRange());
-  });
-
-  function flushFraction() {
-    rafId = 0;
-    if (pendingFraction === null) return;
-    var fraction = pendingFraction;
-    pendingFraction = null;
-    parent.postMessage({ type: 'preview-scroll', fraction: fraction }, '*');
-  }
-
-  // Coalesce to one message per frame. A wheel gesture fires many scroll
-  // events, and each one previously fanned out to three iframes that each
-  // scrolled synchronously — a lot of forced layout inside one gesture.
-  window.addEventListener('scroll', function () {
-    if (Date.now() < applyingUntil) return;
-    pendingFraction = window.scrollY / scrollableRange();
-    if (!rafId) rafId = requestAnimationFrame(flushFraction);
-  }, { passive: true });
+  // Cross-device scroll syncing used to live here and was removed
+  // deliberately. It could never be faithful — the four viewport widths give
+  // the same site four different content heights, so no single offset maps
+  // to the same content everywhere — and keeping four CSS-zoomed documents
+  // in lockstep meant every frame echoed every other one's corrections,
+  // which made scrolling feel like it was fighting back.
 })();
 </script>`;
 
