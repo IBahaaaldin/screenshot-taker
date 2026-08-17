@@ -93,8 +93,20 @@ window.addEventListener('message', (event) => {
   // independently (see src/previewProxy.js). Navigation still is, so all
   // four devices follow a link click to the same page.
   if (event.data.type === 'preview-nav' && typeof event.data.url === 'string') {
+    // Never point the preview at the app's own origin — proxying ourselves
+    // renders Screenshot Taker inside its own device frames. The bridge guards
+    // this too; this is the backstop on the receiving end.
+    let target;
+    try {
+      target = new URL(event.data.url, window.location.href);
+    } catch {
+      return;
+    }
+    if (target.origin === window.location.origin) return;
+
+    urlInput.value = target.href;
     for (const key of Object.keys(iframes)) {
-      iframes[key].src = proxiedPageUrl(event.data.url);
+      iframes[key].src = proxiedPageUrl(target.href);
     }
   }
 });

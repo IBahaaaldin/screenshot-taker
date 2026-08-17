@@ -51,3 +51,21 @@ test('rewriteCssUrls rewrites unquoted, single-, and double-quoted url()', () =>
   assert.match(out, /url\(\/api\/preview\/asset\?url=https%3A%2F%2Fexample\.com%2Fstyles%2Fbg2\.png\)/);
   assert.match(out, /url\(\/api\/preview\/asset\?url=https%3A%2F%2Fcdn\.example\.com%2Fx\.png\)/);
 });
+
+test('rewritePageHtml hides scrollbars inside the device frames', async () => {
+  const html = `<html><head></head><body><p>hi</p></body></html>`;
+  const out = await rewritePageHtml(html, 'https://example.com/');
+  assert.match(out, /scrollbar-width:\s*none/);
+  assert.match(out, /::-webkit-scrollbar/);
+});
+
+// A device iframe that navigated to the app's own origin rendered Screenshot
+// Taker inside its own device frames. Links the site's JS adds after proxying
+// resolve against the app, so the bridge must recover the real target from the
+// proxied href's `url` param and refuse same-origin navigation outright.
+test('rewritePageHtml nav bridge recovers the real target and refuses same-origin navigation', async () => {
+  const html = `<html><body><a href="/page.html">Next</a></body></html>`;
+  const out = await rewritePageHtml(html, 'https://example.com/');
+  assert.match(out, /url=\(\[\^&\]\+\)|url=\(/, 'bridge should parse the url query param out of proxied hrefs');
+  assert.match(out, /origin === location\.origin/, 'bridge should refuse to navigate to its own origin');
+});

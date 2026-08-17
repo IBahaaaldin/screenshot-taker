@@ -1,14 +1,53 @@
 import * as cheerio from 'cheerio';
 
+// A visible scrollbar inside a device frame is a dead giveaway that it's an
+// iframe, not a screen — and because the frames are CSS-zoomed, the bar renders
+// comically thick. It also steals width from the layout being previewed, so the
+// site inside reflows differently than it would on the real device. Scrolling
+// itself is unaffected.
+const HIDE_SCROLLBAR_STYLE = `<style>
+  html { scrollbar-width: none; -ms-overflow-style: none; }
+  html::-webkit-scrollbar, body::-webkit-scrollbar { width: 0; height: 0; }
+</style>`;
+
 const SYNC_BRIDGE_SCRIPT = `<script>
 (function () {
+  // Resolve a link back to its real target on the ORIGINAL site.
+  //
+  // a.href can't be trusted here: this document is served from the app's own
+  // origin, so any link the site's own JS adds after proxying (or any href the
+  // rewriter skipped) resolves against the app instead of the site. Navigating
+  // to that made the preview load the app inside itself — four little copies of
+  // Screenshot Taker in the device frames. Proxied hrefs carry the true target
+  // in their "url" query param, so recover it from there when the rewriter
+  // didn't leave a data attribute.
+  function originalTargetOf(a) {
+    if (a.dataset.previewOriginalHref) return a.dataset.previewOriginalHref;
+    var raw = a.getAttribute('href') || '';
+    var match = /[?&]url=([^&]+)/.exec(raw);
+    if (match) {
+      try {
+        return decodeURIComponent(match[1]);
+      } catch (err) {
+        /* fall through */
+      }
+    }
+    return a.href;
+  }
+
   document.addEventListener('click', function (e) {
     var a = e.target.closest('a[href]');
     if (!a) return;
     var href = a.getAttribute('href') || '';
     if (/^(#|mailto:|tel:|javascript:)/i.test(href)) return;
     e.preventDefault();
-    var navUrl = a.dataset.previewOriginalHref || a.href;
+    var navUrl = originalTargetOf(a);
+    // Last line of defence against previewing the app itself.
+    try {
+      if (new URL(navUrl, location.href).origin === location.origin) return;
+    } catch (err) {
+      return;
+    }
     parent.postMessage({ type: 'preview-nav', url: navUrl }, '*');
   }, true);
 
@@ -83,6 +122,15 @@ export async function rewritePageHtml(html, baseUrl) {
   $('[style]').each((_, el) => {
     $(el).attr('style', rewriteCssUrls($(el).attr('style'), baseUrl));
   });
+
+  // Appended last so it wins over the site's own scrollbar styling.
+  if ($('head').length) {
+    $('head').append(HIDE_SCROLLBAR_STYLE);
+  } else if ($('body').length) {
+    $('body').append(HIDE_SCROLLBAR_STYLE);
+  } else {
+    $.root().append(HIDE_SCROLLBAR_STYLE);
+  }
 
   if ($('body').length) {
     $('body').append(SYNC_BRIDGE_SCRIPT);

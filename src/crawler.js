@@ -1,8 +1,39 @@
 import { chromium } from 'playwright';
 
+// Links to files that aren't web pages. Following these produced genuinely
+// broken output: a linked PDF got "captured" as a page (Chromium renders it in
+// its own PDF viewer), and resolving a relative link against that PDF's URL
+// invented a doubled path (/cv/cv/file.pdf) that 404'd and was then captured
+// as a page of its own — a mockup of a "404" error screen.
+const NON_PAGE_EXTENSIONS = new Set([
+  '.pdf', '.zip', '.rar', '.7z', '.tar', '.gz', '.tgz', '.bz2',
+  '.dmg', '.pkg', '.exe', '.msi', '.deb', '.rpm', '.apk',
+  '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.csv', '.rtf',
+  '.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.avif', '.ico', '.bmp', '.tiff',
+  '.mp4', '.webm', '.mov', '.avi', '.mkv', '.mp3', '.wav', '.ogg', '.flac', '.m4a',
+  '.woff', '.woff2', '.ttf', '.otf', '.eot',
+  '.json', '.xml', '.rss', '.atom', '.txt', '.md', '.yaml', '.yml',
+]);
+
+export function isLikelyPageUrl(url) {
+  let pathname;
+  try {
+    pathname = new URL(url).pathname;
+  } catch {
+    return false;
+  }
+  const lastSegment = pathname.split('/').pop() || '';
+  const dot = lastSegment.lastIndexOf('.');
+  if (dot <= 0) return true; // no extension — treat as a page (/about, /, /docs/)
+  return !NON_PAGE_EXTENSIONS.has(lastSegment.slice(dot).toLowerCase());
+}
+
 export async function crawlSite(startUrl, { maxPages = 50 } = {}) {
   const origin = new URL(startUrl).origin;
   const visited = new Set();
+  // Only pages that actually loaded as HTML end up here. `visited` still
+  // records everything tried, so a bad URL is never retried.
+  const pages = [];
   const queue = [normalize(startUrl)];
   const browser = await chromium.launch();
   try {
@@ -12,9 +43,29 @@ export async function crawlSite(startUrl, { maxPages = 50 } = {}) {
       if (visited.has(url)) continue;
       visited.add(url);
 
-      await page.goto(url, { waitUntil: 'load' }).catch((err) => {
+      let response = null;
+      try {
+        response = await page.goto(url, { waitUntil: 'load' });
+      } catch (err) {
         console.error(`[crawler] failed to load ${url}: ${err.message}`);
-      });
+      }
+
+      // Only exclude when we positively know the page is not usable — a null
+      // response (e.g. a same-document navigation) is not evidence of failure.
+      if (response) {
+        const status = response.status();
+        if (status >= 400) {
+          console.error(`[crawler] skipping ${url}: HTTP ${status}`);
+          continue;
+        }
+        const contentType = response.headers()['content-type'] || '';
+        if (contentType && !/html/i.test(contentType)) {
+          console.error(`[crawler] skipping ${url}: not HTML (${contentType.split(';')[0]})`);
+          continue;
+        }
+      }
+
+      pages.push(url);
       // A page can navigate again right after 'load' (a client-side
       // redirect, an analytics-triggered reload, etc.), destroying the
       // execution context mid-eval. That must not abort the whole crawl —
@@ -35,6 +86,7 @@ export async function crawlSite(startUrl, { maxPages = 50 } = {}) {
           continue;
         }
         if (new URL(absolute).origin !== origin) continue;
+        if (!isLikelyPageUrl(absolute)) continue;
         const clean = normalize(absolute);
         if (!visited.has(clean) && !queue.includes(clean)) {
           queue.push(clean);
@@ -45,7 +97,7 @@ export async function crawlSite(startUrl, { maxPages = 50 } = {}) {
   } finally {
     await browser.close();
   }
-  return dedupeTemplatePages(Array.from(visited).slice(0, maxPages));
+  return dedupeTemplatePages(pages.slice(0, maxPages));
 }
 
 function normalize(url) {

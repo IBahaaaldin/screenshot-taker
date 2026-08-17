@@ -775,12 +775,12 @@ select {
    ------------------------------------------------------------- */
 
 body#preview-page main {
-  max-width: 1500px;
+  max-width: 2000px;
 }
 
-/* The stage needs the wide 1500px main to show 4 devices side by side,
-   but that width shouldn't stretch the hero text or form cards below it —
-   they stay at the original, narrower reading width. */
+/* The stage needs the wide main to show 4 devices side by side, but that
+   width shouldn't stretch the hero text or form cards below it — they stay
+   at the original, narrower reading width. */
 body#preview-page .hero,
 body#preview-page .card,
 body#preview-page .dev-card {
@@ -804,7 +804,7 @@ body#preview-page .dev-card {
   position: relative;
   margin: 1rem auto 2rem;
   aspect-ratio: 2000 / 1200;
-  width: min(100%, 1400px, calc((100vh - 300px) * 5 / 3));
+  width: min(100%, 2000px, calc((100vh - 260px) * 5 / 3));
   /* Makes cqw available to the device frames, which set font-size to their
      own width in cqw so every bezel detail scales with the stage. */
   container-type: size;

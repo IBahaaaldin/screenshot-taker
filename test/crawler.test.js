@@ -113,3 +113,48 @@ test('dedupeTemplatePages does not collapse distinct depth-1 pages sharing an em
   ];
   assert.deepEqual(dedupeTemplatePages(urls), urls);
 });
+
+// A real crawl of the portfolio produced mockups of a PDF and of a "404" error
+// screen: the linked CV .pdf was followed (Chromium renders it in its own
+// viewer), and a relative link resolved against that PDF's URL invented a
+// doubled path that 404'd and got captured too.
+test('crawlSite skips links to files that are not web pages', async (t) => {
+  const server = await startLocalServer(fixtureDir);
+  t.after(() => server.close());
+
+  const pages = await crawlSite(`${server.url}/crawler-badlinks.html`, { maxPages: 20 });
+
+  for (const ext of ['.pdf', '.png', '.json', '.zip']) {
+    assert.ok(
+      !pages.some((u) => u.endsWith(ext)),
+      `crawl must not include ${ext} links, got: ${pages.join(', ')}`
+    );
+  }
+  assert.ok(
+    pages.some((u) => u.endsWith('/crawler-badlinks-real.html')),
+    `the genuine HTML link should still be crawled, got: ${pages.join(', ')}`
+  );
+});
+
+test('crawlSite drops pages that respond 404 instead of capturing the error page', async (t) => {
+  const server = await startLocalServer(fixtureDir);
+  t.after(() => server.close());
+
+  const pages = await crawlSite(`${server.url}/crawler-badlinks.html`, { maxPages: 20 });
+
+  assert.ok(
+    !pages.some((u) => u.includes('definitely-missing-page')),
+    `a 404 must not be returned as a page, got: ${pages.join(', ')}`
+  );
+});
+
+test('crawlSite still returns the start page when it loads fine', async (t) => {
+  const server = await startLocalServer(fixtureDir);
+  t.after(() => server.close());
+
+  const pages = await crawlSite(`${server.url}/crawler-badlinks.html`, { maxPages: 20 });
+  assert.ok(
+    pages.some((u) => u.endsWith('/crawler-badlinks.html')),
+    `the start page should be included, got: ${pages.join(', ')}`
+  );
+});
