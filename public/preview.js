@@ -107,6 +107,12 @@ if (typeof ResizeObserver === 'function') {
   new ResizeObserver(scaleFramesToFit).observe(stage);
 }
 window.addEventListener('resize', scaleFramesToFit);
+// Chromium pauses ResizeObserver and rAF delivery for hidden pages, so a
+// window resized while the app was occluded or minimised would come back
+// with stale scales. Re-fit when the page becomes visible again.
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) scaleFramesToFit();
+});
 
 form.addEventListener('submit', (e) => {
   e.preventDefault();
