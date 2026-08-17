@@ -52,6 +52,18 @@ test('scrolling one device frame in the live preview scrolls all four in sync', 
     return frame.evaluate(() => window.scrollY);
   };
 
+  // Scroll position is synced as a fraction of each device's own scrollable
+  // range, since the four viewport widths give the same site four different
+  // content heights (see src/previewProxy.js).
+  const fractionOf = async (key) => {
+    const handle = await page.$(`#preview-iframe-${key}`);
+    const frame = await handle.contentFrame();
+    return frame.evaluate(() => {
+      const range = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      return window.scrollY / range;
+    });
+  };
+
   // Sanity: everything starts at scrollTop 0.
   for (const key of DEVICES) {
     assert.equal(await scrollYOf(key), 0, `${key} should start unscrolled`);
@@ -67,23 +79,25 @@ test('scrolling one device frame in the live preview scrolls all four in sync', 
   // Give the postMessage sync bridge a moment to propagate to the other three.
   await page.waitForTimeout(500);
 
-  const results = {};
-  for (const key of DEVICES) {
-    results[key] = await scrollYOf(key);
-  }
+  assert.ok(
+    (await scrollYOf('desktop')) > 250,
+    `desktop should have moved to the scrollY we set directly, got ${await scrollYOf('desktop')}`
+  );
 
-  // Each device iframe is CSS-zoomed to fit its bezel, and a zoomed
-  // document's scroll position snaps to its own device-pixel grid — so a
-  // synced frame lands within a few px of the source rather than exactly
-  // on it. A few px of drift is invisible at these scales; what matters is
-  // that every device tracked the scroll instead of staying put.
-  const near = (actual, expected, label) => {
-    assert.ok(Math.abs(actual - expected) < 6, `${label}: expected ~${expected}, got ${actual}`);
-  };
-  near(results.desktop, 300, 'desktop should be at the scrollY we set directly');
-  near(results.laptop, 300, 'laptop should sync to the same scrollY as the source device');
-  near(results.tablet, 300, 'tablet should sync to the same scrollY as the source device');
-  near(results.mobile, 300, 'mobile should sync to the same scrollY as the source device');
+  // Every other device should have landed on the same relative position in
+  // the page. They are CSS-zoomed, so a programmatic scroll snaps to the
+  // zoomed document's own pixel grid and lands a hair off — compare the
+  // fraction with a small tolerance rather than demanding exactness.
+  const sourceFraction = await fractionOf('desktop');
+  assert.ok(sourceFraction > 0, 'the source device should report a non-zero scroll fraction');
+
+  for (const key of DEVICES.filter((k) => k !== 'desktop')) {
+    const fraction = await fractionOf(key);
+    assert.ok(
+      Math.abs(fraction - sourceFraction) < 0.02,
+      `${key} should sync to the source device's scroll fraction (${sourceFraction.toFixed(4)}), got ${fraction.toFixed(4)}`
+    );
+  }
 });
 
 test('real mouse wheel over each device bezel scrolls that device (OS-level hit-test check)', async (t) => {

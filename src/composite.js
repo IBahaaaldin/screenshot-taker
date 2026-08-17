@@ -7,16 +7,28 @@ const CANVAS_WIDTH = 2000;
 const CANVAS_HEIGHT = 1200;
 
 // Device frame geometry for the single overlapping "hero mockup" composition
-// (monitor + laptop + tablet + phone layered together) — matches the
-// fireship.dev/amiresponsive reference layout: a centered iMac-style
-// desktop up top, a large laptop overlapping its bottom-right, and a
-// tablet+phone cluster overlapping its bottom-left. Values are hand-tuned
-// pixel positions/sizes within the CANVAS_WIDTH x CANVAS_HEIGHT stage.
+// (monitor + laptop + tablet + phone layered together): a Studio Display up
+// top, a MacBook Pro overlapping its bottom-right, and an iPad + iPhone
+// cluster overlapping its bottom-left.
+//
+// Each w:h is the REAL screen aspect ratio of the device it depicts, so the
+// site inside is laid out at that device's true viewport shape (the frame's
+// ratio is what determines the iframe/screenshot viewport height — see
+// public/preview.js scaleFramesToFit):
+//
+//   desktop  Studio Display 27"   16:9        1.7778  -> 1920x1080
+//   laptop   MacBook Pro 14"      3024x1964   1.5397  -> 1440x936
+//   tablet   iPad Pro 11"          834x1210   0.6893  ->  768x1114
+//   mobile   iPhone 16 Pro         402x874    0.4600  ->  390x848
+//
+// Positions are hand-tuned within the CANVAS_WIDTH x CANVAS_HEIGHT stage so
+// the cluster reads as one balanced composition. public/style.css mirrors
+// every value below as a percentage of the same canvas.
 const LAYOUT = {
-  desktop: { x: 525, y: 130, w: 770, h: 480, z: 1 },
-  laptop: { x: 1060, y: 540, w: 820, h: 410, z: 2 },
-  tablet: { x: 400, y: 480, w: 300, h: 390, z: 3 },
-  mobile: { x: 640, y: 640, w: 165, h: 350, z: 4 },
+  desktop: { x: 490, y: 130, w: 820, h: 461, z: 1 },
+  laptop: { x: 1020, y: 520, w: 780, h: 507, z: 2 },
+  tablet: { x: 220, y: 450, w: 324, h: 470, z: 3 },
+  mobile: { x: 460, y: 580, w: 184, h: 400, z: 4 },
 };
 
 export async function buildComposite(browser, imagesByViewport, outputPath) {
@@ -62,123 +74,149 @@ function renderHtml(entries, dataUrls) {
     height: ${CANVAS_HEIGHT}px;
     background:
       radial-gradient(ellipse 1200px 600px at 30% 20%, rgba(139, 195, 74, 0.10), transparent 60%),
-      #0a0a0a;
+      #101114;
     position: relative;
     font-family: -apple-system, sans-serif;
     overflow: hidden;
   }
-  .device { position: absolute; filter: drop-shadow(0 30px 50px rgba(0,0,0,0.55)); }
+  /* Every device sets font-size to its own screen width, so 1em == that
+     device's width and all bezel detail below (border thickness, corner
+     radius, notch, island, stand) is expressed as a FRACTION of the real
+     device — the numbers are taken from Apple's own dimensions. Hard-coded
+     px would be wrong at any scale but one: a 42px radius reads as a
+     correct iPhone at 400px wide and as an Apple Watch at 80px wide.
+     public/style.css uses these exact same em values. */
+  .device { position: absolute; }
   .screen { overflow: hidden; background: #050505; }
   .screen img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
 
-  /* Desktop: iMac-style all-in-one — chin bezel with a camera dot, and a
-     single continuous neck-into-foot stand (not a separate thin arm). */
+  /* Desktop: Studio Display 27" — thin black bezel inside an aluminum
+     enclosure edge, on a slim aluminum stand. Bezel is 13mm on a 596mm
+     screen (0.022em); no chin (that's an iMac, not a display). */
   .desktop-bezel {
+    /* content-box so the screen IS the LAYOUT size and the bezel draws
+       outside it, keeping the real screen aspect ratio — public/style.css
+       does the same for the live preview. */
+    box-sizing: content-box;
     width: 100%; height: 100%;
-    border-radius: 16px;
-    border: 7px solid #d9dadc;
-    background: linear-gradient(155deg, #eceeef, #cfd1d3);
-    display: flex;
-    flex-direction: column;
+    border-radius: 0.047em;
+    border: 0.022em solid #0a0a0b;
+    background: #0a0a0b;
+    box-shadow:
+      0 0 0 0.016em #c6c8ca,
+      0 0.05em 0.09em -0.025em rgba(0, 0, 0, 0.5);
   }
-  .desktop-bezel .screen { border-radius: 9px 9px 0 0; flex: 1 1 auto; min-height: 0; }
-  .desktop-chin {
-    flex: 0 0 30px;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .desktop-chin::before {
-    content: '';
-    width: 6px; height: 6px; border-radius: 50%;
-    background: #3a3b3d;
-    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.08);
-  }
+  .desktop-bezel .screen { border-radius: 0.025em; height: 100%; }
+  /* Stand: neck tapers outward into a shallow oval foot. */
   .desktop-neck {
     position: absolute; left: 50%; top: 100%; transform: translateX(-50%);
-    width: 17%; height: 80px;
-    background: linear-gradient(90deg, #b9bbbd, #eceeef 45%, #b9bbbd);
-    clip-path: polygon(18% 0%, 82% 0%, 100% 100%, 0% 100%);
+    width: 0.10em; height: 0.168em;
+    border-radius: 0 0 0.012em 0.012em;
+    background: linear-gradient(90deg, #9ea1a4, #e8eaeb 40%, #b7babd 72%, #94979a);
   }
   .desktop-foot {
     position: absolute; left: 50%; transform: translateX(-50%);
-    top: calc(100% + 80px);
-    width: 32%; height: 16px; border-radius: 50%;
-    background: linear-gradient(180deg, #dcdddf, #b6b8ba);
+    top: calc(100% + 0.168em);
+    width: 0.40em; height: 0.024em; border-radius: 0.012em;
+    background: linear-gradient(180deg, #e2e4e5, #a5a8ab);
+    box-shadow: 0 0.016em 0.032em -0.012em rgba(0, 0, 0, 0.5);
   }
 
-  /* Laptop: MacBook Pro — screen notch, thin silver bezel, rounded top
-     corners, aluminum keyboard deck with a hinge seam. */
+  /* Laptop: MacBook Pro 14" — very thin dark bezel (3.5mm on a 312mm
+     screen = 0.011em), small camera notch, aluminum base below the lid. */
   .laptop-bezel {
+    /* content-box so the screen IS the LAYOUT size and the bezel draws
+       outside it, keeping the real screen aspect ratio — public/style.css
+       does the same for the live preview. */
+    box-sizing: content-box;
     width: 100%; height: 100%;
-    border-radius: 18px 18px 4px 4px;
-    border: 9px solid #2b2c2e;
-    border-bottom-width: 3px;
-    background: #2b2c2e;
+    border-radius: 0.024em 0.024em 0.006em 0.006em;
+    border: 0.014em solid #2e3033;
+    background: #2e3033;
     position: relative;
+    box-shadow:
+      0 0 0 0.005em #4a4d51,
+      0 0.05em 0.09em -0.025em rgba(0, 0, 0, 0.5);
   }
-  .laptop-bezel .screen { border-radius: 10px 10px 2px 2px; height: 100%; position: relative; }
+  .laptop-bezel .screen { border-radius: 0.012em 0.012em 0.004em 0.004em; height: 100%; position: relative; }
   .laptop-notch {
     position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-    width: 13%; height: 20px; border-radius: 0 0 10px 10px;
-    background: #050505; z-index: 2;
+    width: 0.07em; height: 0.027em; border-radius: 0 0 0.013em 0.013em;
+    background: #2e3033; z-index: 2;
   }
+  /* Base: the lid sits on it, so it reads slightly wider, with the
+     trackpad-lip cutout at front centre. */
   .laptop-deck {
-    position: absolute; left: 50%; bottom: -22px; transform: translateX(-50%);
-    width: 122%; height: 22px;
-    background: linear-gradient(180deg, #e4e5e7, #b9bbbd);
-    border-radius: 0 0 14px 14px;
+    position: absolute; left: 50%; bottom: -0.032em; transform: translateX(-50%);
+    width: 1.05em; height: 0.032em;
+    background: linear-gradient(180deg, #d5d7d9 0%, #b6b8ba 55%, #9fa2a5 100%);
+    border-radius: 0 0 0.014em 0.014em;
   }
   .laptop-deck::before {
     content: '';
-    position: absolute; left: 0; top: 0; width: 100%; height: 3px;
-    background: linear-gradient(180deg, rgba(0,0,0,0.25), transparent);
+    position: absolute; left: 0; top: 0; width: 100%; height: 0.004em;
+    background: rgba(0, 0, 0, 0.28);
   }
   .laptop-deck::after {
     content: '';
-    position: absolute; left: 50%; top: 5px; transform: translateX(-50%);
-    width: 15%; height: 5px; border-radius: 3px;
-    background: #9a9c9e;
+    position: absolute; left: 50%; bottom: 0; transform: translateX(-50%);
+    width: 0.14em; height: 0.008em; border-radius: 0.006em 0.006em 0 0;
+    background: #93969a;
   }
 
-  /* Tablet: iPad Pro — ultra-thin uniform bezel, large corner radius,
-     brushed-aluminum edge, centered camera. */
+  /* Tablet: iPad Pro 11" — uniform aluminum bezel 9mm on a 160mm screen
+     (0.056em), and a notably tighter corner radius than an iPhone
+     (Apple's displayCornerRadius is 18pt on 834pt wide = 0.022em). */
   .tablet-bezel {
+    /* content-box so the screen IS the LAYOUT size and the bezel draws
+       outside it, keeping the real screen aspect ratio — public/style.css
+       does the same for the live preview. */
+    box-sizing: content-box;
     width: 100%; height: 100%;
-    border-radius: 22px;
-    border: 8px solid #d3d4d6;
-    background: linear-gradient(155deg, #e7e8ea, #c3c5c7);
+    border-radius: 0.078em;
+    border: 0.056em solid #d5d6d8;
+    background: linear-gradient(155deg, #e4e5e7, #c2c4c6);
     position: relative;
+    box-shadow:
+      0 0 0 0.006em #a9acaf,
+      0 0.05em 0.09em -0.025em rgba(0, 0, 0, 0.45);
   }
-  .tablet-bezel .screen { border-radius: 14px; height: 100%; }
+  .tablet-bezel .screen { border-radius: 0.022em; height: 100%; }
   .tablet-bezel::before {
     content: '';
-    position: absolute; top: 3px; left: 50%; transform: translateX(-50%);
-    width: 5px; height: 5px; border-radius: 50%;
-    background: #16171a; box-shadow: 0 0 0 2px rgba(0,0,0,0.08);
+    position: absolute; top: 0.020em; left: 50%; transform: translateX(-50%);
+    width: 0.016em; height: 0.016em; border-radius: 50%;
+    background: #23252a;
     z-index: 2;
   }
 
-  /* Phone: iPhone — Dynamic Island, titanium frame, large corner radius,
-     bottom home indicator. */
+  /* Phone: iPhone 16 Pro — titanium band, Dynamic Island (125x36pt on a
+     402pt screen), home indicator (140x5pt), and Apple's real 55pt screen
+     corner radius = 0.137em of the screen width. */
   .mobile-bezel {
+    /* content-box so the screen IS the LAYOUT size and the bezel draws
+       outside it, keeping the real screen aspect ratio — public/style.css
+       does the same for the live preview. */
+    box-sizing: content-box;
     width: 100%; height: 100%;
-    border-radius: 42px;
-    border: 6px solid #948d84;
-    background: linear-gradient(155deg, #a79f95, #857d73);
+    border-radius: 0.172em;
+    border: 0.035em solid #b0a89d;
+    background: linear-gradient(155deg, #c3bbb0, #8f877d);
     position: relative;
+    box-shadow:
+      0 0 0 0.010em #7d766d,
+      0 0.05em 0.09em -0.025em rgba(0, 0, 0, 0.5);
   }
-  .mobile-bezel .screen { border-radius: 36px; height: 100%; position: relative; }
+  .mobile-bezel .screen { border-radius: 0.137em; height: 100%; position: relative; }
   .mobile-island {
-    position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
-    width: 34%; height: 20px; border-radius: 999px;
-    background: #050505; box-shadow: 0 0 0 1px rgba(255,255,255,0.14); z-index: 2;
+    position: absolute; top: 0.028em; left: 50%; transform: translateX(-50%);
+    width: 0.311em; height: 0.0896em; border-radius: 999px;
+    background: #050505; box-shadow: 0 0 0 0.002em rgba(255, 255, 255, 0.16); z-index: 2;
   }
   .mobile-home {
-    position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
-    width: 90px; height: 4px; border-radius: 999px;
-    background: rgba(255,255,255,0.55); z-index: 2;
+    position: absolute; bottom: 0.021em; left: 50%; transform: translateX(-50%);
+    width: 0.348em; height: 0.013em; border-radius: 999px;
+    background: rgba(255, 255, 255, 0.6); z-index: 2;
   }
 </style>
 </head>
@@ -190,13 +228,14 @@ function renderHtml(entries, dataUrls) {
 
 function frameHtml(name, dataUrl) {
   const { x, y, w, h, z } = LAYOUT[name];
-  const style = `left:${x}px; top:${y}px; width:${w}px; height:${h}px; z-index:${z};`;
+  // font-size == the device's own width, so every `em` in the bezel CSS is a
+  // fraction of this device (see the style block's opening comment).
+  const style = `left:${x}px; top:${y}px; width:${w}px; height:${h}px; z-index:${z}; font-size:${w}px;`;
 
   if (name === 'desktop') {
     return `<div class="device" style="${style}">
       <div class="desktop-bezel">
         <div class="screen"><img src="${dataUrl}" /></div>
-        <div class="desktop-chin"></div>
       </div>
       <div class="desktop-neck"></div>
       <div class="desktop-foot"></div>

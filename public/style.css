@@ -805,6 +805,9 @@ body#preview-page .dev-card {
   margin: 1rem auto 2rem;
   aspect-ratio: 2000 / 1200;
   width: min(100%, 1400px, calc((100vh - 300px) * 5 / 3));
+  /* Makes cqw available to the device frames, which set font-size to their
+     own width in cqw so every bezel detail scales with the stage. */
+  container-type: size;
 }
 
 /* The device stage is this page's headline element, so give it as much of
@@ -861,7 +864,13 @@ body.recording-mode .preview-stage {
   position: absolute;
   overflow: hidden;
   background: #050505;
-  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.35);
+  /* content-box, against the global border-box default, so each frame's
+     width/height IS its screen — the bezel border draws outside it. That
+     keeps the screen exactly at its device's real aspect ratio (a border
+     inside the box would eat unequal fractions of width and height and
+     skew it), and makes the visual outline screen+bezel, like a real
+     device. src/composite.js sizes its bezels the same way. */
+  box-sizing: content-box;
 }
 
 .preview-frame iframe {
@@ -870,81 +879,121 @@ body.recording-mode .preview-stage {
   transform-origin: top left;
 }
 
-/* Desktop — iMac-style all-in-one: light-silver bezel, centered near the
-   top, matching src/composite.js's LAYOUT (x525 y130 w770 h480 of a
-   2000x1200 stage). */
-.preview-frame-desktop {
-  left: 26.25%;
-  top: 10.83%;
-  width: 38.5%;
-  height: 40%;
-  border-radius: 16px;
-  border: 7px solid #d9dadc;
-  background: linear-gradient(155deg, #eceeef, #cfd1d3);
+/* Every decorative overlay below sits ON TOP of a device's iframe. Without
+   pointer-events:none they swallow the wheel events aimed at the site
+   inside — the Dynamic Island alone covers ~31% of the phone's width — so
+   scrolling over them silently scrolled the outer page instead. */
+.preview-frame-island,
+.preview-frame-home,
+.preview-frame-notch,
+.preview-frame-tablet::before,
+.preview-frame-desktop-neck,
+.preview-frame-desktop-foot,
+.preview-frame-deck {
+  pointer-events: none;
 }
-.preview-frame-desktop iframe { width: 1920px; height: 1140px; }
 
-/* Neck + foot — siblings of .preview-frame-desktop (not children) so they
-   aren't clipped by the frame's own overflow:hidden. A single continuous
-   iMac-style stand instead of a separate thin arm, matching composite.js's
-   .desktop-neck/.desktop-foot. */
+/* ---------------------------------------------------------------
+   Device frames — geometry mirrors src/composite.js's LAYOUT as
+   percentages of the same 2000x1200 canvas, so the live preview and the
+   exported screenshots are the same composition.
+
+   Each frame's w:h is its device's REAL screen aspect ratio, which is also
+   what gives the site inside that device's true viewport height (see
+   preview.js scaleFramesToFit):
+
+     desktop  Studio Display 27"  16:9       1.7778 -> 1920x1080
+     laptop   MacBook Pro 14"     3024x1964  1.5397 -> 1440x936
+     tablet   iPad Pro 11"         834x1210  0.6893 ->  768x1114
+     mobile   iPhone 16 Pro        402x874   0.4600 ->  390x848
+
+   Each frame also sets font-size to its own width in cqw (the stage is a
+   size container), so 1em == that device's width and every bezel detail is
+   a fraction of the real device rather than a fixed px value that would
+   only be correct at one stage size.
+   ------------------------------------------------------------- */
+
+/* Desktop — Studio Display: thin black bezel in an aluminum enclosure. */
+.preview-frame-desktop {
+  left: 24.5%;
+  top: 10.8333%;
+  width: 41%;
+  height: 38.4167%;
+  font-size: 41cqw;
+  border-radius: 0.047em;
+  border: 0.022em solid #0a0a0b;
+  background: #0a0a0b;
+  box-shadow:
+    0 0 0 0.016em #c6c8ca,
+    0 0.05em 0.09em -0.025em rgba(0, 0, 0, 0.35);
+}
+.preview-frame-desktop iframe { width: 1920px; }
+
+/* Stand — siblings of the frame (not children) so the frame's own
+   overflow:hidden can't clip them. They carry the desktop's font-size so
+   the same em fractions apply. */
 .preview-frame-desktop-neck {
   position: absolute;
-  left: 45.5%;
-  top: 50.83%;
+  left: 45%;
+  top: 49.25%;
   transform: translateX(-50%);
-  width: 6.5%;
-  height: 6.67%;
-  background: linear-gradient(90deg, #b9bbbd, #eceeef 45%, #b9bbbd);
-  clip-path: polygon(18% 0%, 82% 0%, 100% 100%, 0% 100%);
+  font-size: 41cqw;
+  width: 0.10em;
+  height: 0.168em;
+  border-radius: 0 0 0.012em 0.012em;
+  background: linear-gradient(90deg, #9ea1a4, #e8eaeb 40%, #b7babd 72%, #94979a);
 }
 .preview-frame-desktop-foot {
   position: absolute;
-  left: 45.5%;
-  top: 57.5%;
+  left: 45%;
+  top: 60.75%;
   transform: translateX(-50%);
-  width: 12.3%;
-  height: 1.33%;
-  border-radius: 50%;
-  background: linear-gradient(180deg, #dcdddf, #b6b8ba);
+  font-size: 41cqw;
+  width: 0.40em;
+  height: 0.024em;
+  border-radius: 0.012em;
+  background: linear-gradient(180deg, #e2e4e5, #a5a8ab);
+  box-shadow: 0 0.016em 0.032em -0.012em rgba(0, 0, 0, 0.35);
 }
 
-/* Laptop — MacBook Pro: dark aluminum bezel, rounded top corners, notch.
-   Matches composite.js's LAYOUT (x1060 y540 w820 h410). */
+/* Laptop — MacBook Pro 14": very thin dark bezel, camera notch. */
 .preview-frame-laptop {
-  left: 53%;
-  top: 45%;
-  width: 41%;
-  height: 34.17%;
-  border-radius: 18px 18px 4px 4px;
-  border: 9px solid #2b2c2e;
-  background: #2b2c2e;
+  left: 51%;
+  top: 43.3333%;
+  width: 39%;
+  height: 42.25%;
+  font-size: 39cqw;
+  border-radius: 0.024em 0.024em 0.006em 0.006em;
+  border: 0.014em solid #2e3033;
+  background: #2e3033;
+  box-shadow:
+    0 0 0 0.005em #4a4d51,
+    0 0.05em 0.09em -0.025em rgba(0, 0, 0, 0.35);
 }
-.preview-frame-laptop iframe { width: 1440px; height: 900px; }
+.preview-frame-laptop iframe { width: 1440px; }
 .preview-frame-notch {
   position: absolute;
   top: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 13%;
-  height: 14px;
-  border-radius: 0 0 8px 8px;
-  background: #050505;
+  width: 0.07em;
+  height: 0.027em;
+  border-radius: 0 0 0.013em 0.013em;
+  background: #2e3033;
   z-index: 2;
 }
 
-/* Keyboard deck — a sibling of .preview-frame-laptop (not a child) so it
-   isn't clipped by the frame's own overflow:hidden, matching the laptop's
-   left/top/width in composite.js's LAYOUT-driven hero mockup. */
+/* Base — a sibling of the lid, so overflow:hidden can't clip it. */
 .preview-frame-deck {
   position: absolute;
-  left: 73.5%;
-  top: 79.17%;
+  left: 70.5%;
+  top: 85.5833%;
   transform: translateX(-50%);
-  width: 47%;
-  height: 3.4%;
-  border-radius: 0 0 10px 10px;
-  background: linear-gradient(180deg, #e4e5e7, #b9bbbd);
+  font-size: 39cqw;
+  width: 1.05em;
+  height: 0.032em;
+  border-radius: 0 0 0.014em 0.014em;
+  background: linear-gradient(180deg, #d5d7d9 0%, #b6b8ba 55%, #9fa2a5 100%);
 }
 .preview-frame-deck::before {
   content: '';
@@ -952,84 +1001,89 @@ body.recording-mode .preview-stage {
   left: 0;
   top: 0;
   width: 100%;
-  height: 20%;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.25), transparent);
+  height: 0.004em;
+  background: rgba(0, 0, 0, 0.28);
 }
 .preview-frame-deck::after {
   content: '';
   position: absolute;
   left: 50%;
-  top: 18%;
+  bottom: 0;
   transform: translateX(-50%);
-  width: 15%;
-  height: 22%;
-  border-radius: 3px;
-  background: #9a9c9e;
+  width: 0.14em;
+  height: 0.008em;
+  border-radius: 0.006em 0.006em 0 0;
+  background: #93969a;
 }
 
-/* Tablet — iPad Pro: ultra-thin uniform silver bezel, large corner radius.
-   Matches composite.js's LAYOUT (x400 y480 w300 h390). */
+/* Tablet — iPad Pro 11": uniform aluminum bezel, tight corner radius. */
 .preview-frame-tablet {
-  left: 20%;
-  top: 40%;
-  width: 15%;
-  height: 32.5%;
-  border-radius: 22px;
-  border: 8px solid #d3d4d6;
-  background: linear-gradient(155deg, #e7e8ea, #c3c5c7);
+  left: 11%;
+  top: 37.5%;
+  width: 16.2%;
+  height: 39.1667%;
+  font-size: 16.2cqw;
+  border-radius: 0.078em;
+  border: 0.056em solid #d5d6d8;
+  background: linear-gradient(155deg, #e4e5e7, #c2c4c6);
+  box-shadow:
+    0 0 0 0.006em #a9acaf,
+    0 0.05em 0.09em -0.025em rgba(0, 0, 0, 0.32);
 }
 .preview-frame-tablet::before {
   content: '';
   position: absolute;
-  top: 3px;
+  top: 0.020em;
   left: 50%;
   transform: translateX(-50%);
-  width: 5px;
-  height: 5px;
+  width: 0.016em;
+  height: 0.016em;
   border-radius: 50%;
-  background: #16171a;
-  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.08);
+  background: #23252a;
   z-index: 2;
 }
-.preview-frame-tablet iframe { width: 768px; height: 1024px; }
+.preview-frame-tablet iframe { width: 768px; }
 
-/* Mobile — iPhone: titanium frame, Dynamic Island, home indicator.
-   Matches composite.js's LAYOUT (x640 y640 w165 h350). */
+/* Mobile — iPhone 16 Pro: titanium band, Dynamic Island, home indicator. */
 .preview-frame-mobile {
-  left: 32%;
-  top: 53.33%;
-  width: 8.25%;
-  height: 29.17%;
-  border-radius: 42px;
-  border: 6px solid #948d84;
-  background: linear-gradient(155deg, #a79f95, #857d73);
+  left: 23%;
+  top: 48.3333%;
+  width: 9.2%;
+  height: 33.3333%;
+  font-size: 9.2cqw;
+  border-radius: 0.172em;
+  border: 0.035em solid #b0a89d;
+  background: linear-gradient(155deg, #c3bbb0, #8f877d);
+  box-shadow:
+    0 0 0 0.010em #7d766d,
+    0 0.05em 0.09em -0.025em rgba(0, 0, 0, 0.35);
 }
-.preview-frame-mobile iframe { width: 390px; height: 844px; }
+.preview-frame-mobile iframe { width: 390px; }
 .preview-frame-island {
   position: absolute;
-  top: 8px;
+  top: 0.028em;
   left: 50%;
   transform: translateX(-50%);
-  width: 34%;
-  height: 14px;
+  width: 0.311em;
+  height: 0.0896em;
   border-radius: 999px;
   background: #050505;
   /* A near-black pill on the target site's own dark content can be
      invisible without this — the ring keeps it legible against any page
      background, matching how a real Dynamic Island stays visible via the
      physical bezel gap around it. */
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14);
+  box-shadow: 0 0 0 0.002em rgba(255, 255, 255, 0.16);
   z-index: 2;
 }
 .preview-frame-home {
   position: absolute;
-  bottom: 6px;
+  bottom: 0.021em;
   left: 50%;
   transform: translateX(-50%);
-  width: 40%;
-  height: 3px;
+  width: 0.348em;
+  height: 0.013em;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.6);
   z-index: 2;
 }
 

@@ -84,10 +84,18 @@ window.addEventListener('message', (event) => {
   const fromDevice = sourceDeviceOf(event.source);
   if (!fromDevice) return;
 
-  if (event.data.type === 'preview-scroll') {
+  // Rebroadcast the source device's scroll position, as a fraction of its
+  // scrollable range, to the other three (see the sync bridge in
+  // src/previewProxy.js for why it's a fraction and not a pixel offset).
+  // No throttling needed here — the sender already coalesces to one message
+  // per animation frame.
+  if (event.data.type === 'preview-scroll' && typeof event.data.fraction === 'number') {
     for (const key of Object.keys(iframes)) {
       if (key === fromDevice) continue;
-      iframes[key].contentWindow?.postMessage({ type: 'preview-scroll-to', y: event.data.y }, '*');
+      iframes[key].contentWindow?.postMessage(
+        { type: 'preview-scroll-to', fraction: event.data.fraction },
+        '*'
+      );
     }
   }
 

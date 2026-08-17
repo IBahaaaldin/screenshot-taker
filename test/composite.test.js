@@ -53,7 +53,7 @@ test('buildComposite renders a PNG containing all provided viewports', async () 
         // Sample a point well inside the desktop monitor's screen area, and
         // a point well inside the mobile phone's screen area. Coordinates
         // are derived from src/composite.js's LAYOUT constants (desktop:
-        // x525 y130 w770 h480; mobile: x640 y640 w165 h350) — each point
+        // x490 y130 w820 h461; mobile: x460 y580 w184 h400) — each point
         // sits safely inside that device's screen and outside every other
         // device's bounding box in the overlapping hero-mockup layout. Only
         // desktop/mobile images are provided in this test, so laptop/tablet
@@ -64,7 +64,7 @@ test('buildComposite renders a PNG containing all provided viewports', async () 
         };
         return {
           desktopArea: sample(700, 300),
-          mobileArea: sample(700, 850),
+          mobileArea: sample(552, 780),
         };
       }, compositeDataUrl);
 
