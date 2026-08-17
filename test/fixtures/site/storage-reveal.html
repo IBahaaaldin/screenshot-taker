@@ -1,0 +1,17 @@
+<!doctype html>
+<html>
+<head><title>Storage Reveal</title></head>
+<body>
+  <h1>Heading is always visible</h1>
+  <!-- Mimics a real site: read a stored preference during init, then reveal
+       content. If the storage read throws, the whole init aborts and the
+       content stays invisible — exactly what a theme toggle plus a
+       scroll-reveal animation does on a real portfolio. -->
+  <div id="card" style="opacity:0; height:200px; background:#c00;">card content</div>
+  <script>
+    var theme = window.localStorage.getItem('theme') || 'light';
+    document.getElementById('card').style.opacity = '1';
+    document.getElementById('card').setAttribute('data-theme', theme);
+  </script>
+</body>
+</html>

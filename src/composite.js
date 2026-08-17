@@ -26,10 +26,10 @@ const CANVAS_HEIGHT = 1200;
 // the cluster reads as one balanced composition. public/style.css mirrors
 // every value below as a percentage of the same canvas.
 const LAYOUT = {
-  desktop: { x: 490, y: 130, w: 820, h: 461, z: 1 },
-  laptop: { x: 1020, y: 520, w: 780, h: 507, z: 2 },
-  tablet: { x: 220, y: 450, w: 324, h: 470, z: 3 },
-  mobile: { x: 460, y: 580, w: 184, h: 400, z: 4 },
+  desktop: { x: 429, y: 74, w: 918, h: 516, z: 1 },
+  laptop: { x: 1022, y: 510, w: 874, h: 568, z: 2 },
+  tablet: { x: 126, y: 432, w: 363, h: 526, z: 3 },
+  mobile: { x: 395, y: 578, w: 206, h: 448, z: 4 },
 };
 
 export async function buildComposite(browser, imagesByViewport, outputPath) {

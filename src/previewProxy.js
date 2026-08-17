@@ -10,6 +10,77 @@ const HIDE_SCROLLBAR_STYLE = `<style>
   html::-webkit-scrollbar, body::-webkit-scrollbar { width: 0; height: 0; }
 </style>`;
 
+// The device iframes are sandboxed WITHOUT allow-same-origin (deliberately —
+// the proxied page is served from the app's own origin, so allowing same-origin
+// would let an arbitrary third-party site script the app itself). That gives
+// the document an opaque origin, and in an opaque origin merely *reading*
+// window.localStorage throws a SecurityError.
+//
+// That one throw was breaking previews badly: sites commonly read a stored
+// theme/locale during init, the exception aborted the rest of the init script,
+// and every element waiting on a scroll-reveal animation stayed at opacity 0.
+// The result looked like the preview "wasn't loading the full site" — headings
+// visible, all the content below them blank — on all four devices at once.
+//
+// Installing an in-memory stand-in keeps the sandbox intact and lets those
+// scripts run. Values don't persist, which is correct for a preview: each
+// device should start from the site's default state, not a remembered one.
+const STORAGE_SHIM_SCRIPT = `<script>
+(function () {
+  function createMemoryStorage() {
+    var data = Object.create(null);
+    var api = {
+      getItem: function (key) {
+        key = String(key);
+        return Object.prototype.hasOwnProperty.call(data, key) ? data[key] : null;
+      },
+      setItem: function (key, value) { data[String(key)] = String(value); },
+      removeItem: function (key) { delete data[String(key)]; },
+      clear: function () { data = Object.create(null); },
+      key: function (index) {
+        var keys = Object.keys(data);
+        return index >= 0 && index < keys.length ? keys[index] : null;
+      },
+    };
+    Object.defineProperty(api, 'length', {
+      get: function () { return Object.keys(data).length; },
+    });
+    return api;
+  }
+
+  ['localStorage', 'sessionStorage'].forEach(function (name) {
+    var usable = false;
+    try {
+      var store = window[name];
+      store.getItem('__preview_probe__');
+      usable = true;
+    } catch (err) {
+      usable = false;
+    }
+    if (usable) return;
+    try {
+      Object.defineProperty(window, name, {
+        configurable: true,
+        get: function () { return this['__preview_' + name] || (this['__preview_' + name] = createMemoryStorage()); },
+      });
+    } catch (err) {
+      /* If even defining it fails there is nothing more we can do. */
+    }
+  });
+
+  // Same story: touching indexedDB in an opaque origin throws.
+  try {
+    void window.indexedDB;
+  } catch (err) {
+    try {
+      Object.defineProperty(window, 'indexedDB', { configurable: true, value: null });
+    } catch (err2) {
+      /* ignore */
+    }
+  }
+})();
+</script>`;
+
 const SYNC_BRIDGE_SCRIPT = `<script>
 (function () {
   // Resolve a link back to its real target on the ORIGINAL site.
@@ -122,6 +193,16 @@ export async function rewritePageHtml(html, baseUrl) {
   $('[style]').each((_, el) => {
     $(el).attr('style', rewriteCssUrls($(el).attr('style'), baseUrl));
   });
+
+  // PREPENDED to <head> so it runs before any of the site's own scripts — a
+  // shim installed after the init script has already thrown is useless.
+  if ($('head').length) {
+    $('head').prepend(STORAGE_SHIM_SCRIPT);
+  } else if ($('body').length) {
+    $('body').prepend(STORAGE_SHIM_SCRIPT);
+  } else {
+    $.root().prepend(STORAGE_SHIM_SCRIPT);
+  }
 
   // Appended last so it wins over the site's own scrollbar styling.
   if ($('head').length) {

@@ -915,11 +915,11 @@ body.recording-mode .preview-stage {
 
 /* Desktop — Studio Display: thin black bezel in an aluminum enclosure. */
 .preview-frame-desktop {
-  left: 24.5%;
-  top: 10.8333%;
-  width: 41%;
-  height: 38.4167%;
-  font-size: 41cqw;
+  left: 21.45%;
+  top: 6.1667%;
+  width: 45.9%;
+  height: 43%;
+  font-size: 45.9cqw;
   border-radius: 0.047em;
   border: 0.022em solid #0a0a0b;
   background: #0a0a0b;
@@ -934,10 +934,10 @@ body.recording-mode .preview-stage {
    the same em fractions apply. */
 .preview-frame-desktop-neck {
   position: absolute;
-  left: 45%;
-  top: 49.25%;
+  left: 44.4%;
+  top: 49.1667%;
   transform: translateX(-50%);
-  font-size: 41cqw;
+  font-size: 45.9cqw;
   width: 0.10em;
   height: 0.168em;
   border-radius: 0 0 0.012em 0.012em;
@@ -945,10 +945,10 @@ body.recording-mode .preview-stage {
 }
 .preview-frame-desktop-foot {
   position: absolute;
-  left: 45%;
-  top: 60.75%;
+  left: 44.4%;
+  top: 62.0187%;
   transform: translateX(-50%);
-  font-size: 41cqw;
+  font-size: 45.9cqw;
   width: 0.40em;
   height: 0.024em;
   border-radius: 0.012em;
@@ -958,11 +958,11 @@ body.recording-mode .preview-stage {
 
 /* Laptop — MacBook Pro 14": very thin dark bezel, camera notch. */
 .preview-frame-laptop {
-  left: 51%;
-  top: 43.3333%;
-  width: 39%;
-  height: 42.25%;
-  font-size: 39cqw;
+  left: 51.1%;
+  top: 42.5%;
+  width: 43.7%;
+  height: 47.3333%;
+  font-size: 43.7cqw;
   border-radius: 0.024em 0.024em 0.006em 0.006em;
   border: 0.014em solid #2e3033;
   background: #2e3033;
@@ -986,10 +986,10 @@ body.recording-mode .preview-stage {
 /* Base — a sibling of the lid, so overflow:hidden can't clip it. */
 .preview-frame-deck {
   position: absolute;
-  left: 70.5%;
-  top: 85.5833%;
+  left: 72.95%;
+  top: 89.8333%;
   transform: translateX(-50%);
-  font-size: 39cqw;
+  font-size: 43.7cqw;
   width: 1.05em;
   height: 0.032em;
   border-radius: 0 0 0.014em 0.014em;
@@ -1018,11 +1018,11 @@ body.recording-mode .preview-stage {
 
 /* Tablet — iPad Pro 11": uniform aluminum bezel, tight corner radius. */
 .preview-frame-tablet {
-  left: 11%;
-  top: 37.5%;
-  width: 16.2%;
-  height: 39.1667%;
-  font-size: 16.2cqw;
+  left: 6.3%;
+  top: 36%;
+  width: 18.15%;
+  height: 43.8333%;
+  font-size: 18.15cqw;
   border-radius: 0.078em;
   border: 0.056em solid #d5d6d8;
   background: linear-gradient(155deg, #e4e5e7, #c2c4c6);
@@ -1046,11 +1046,11 @@ body.recording-mode .preview-stage {
 
 /* Mobile — iPhone 16 Pro: titanium band, Dynamic Island, home indicator. */
 .preview-frame-mobile {
-  left: 23%;
-  top: 48.3333%;
-  width: 9.2%;
-  height: 33.3333%;
-  font-size: 9.2cqw;
+  left: 19.75%;
+  top: 48.1667%;
+  width: 10.3%;
+  height: 37.3333%;
+  font-size: 10.3cqw;
   border-radius: 0.172em;
   border: 0.035em solid #b0a89d;
   background: linear-gradient(155deg, #c3bbb0, #8f877d);

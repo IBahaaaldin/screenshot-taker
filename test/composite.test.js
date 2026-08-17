@@ -54,7 +54,7 @@ test('buildComposite renders a PNG containing all provided viewports', async () 
         // Sample a point well inside the desktop monitor's screen area, and
         // a point well inside the mobile phone's screen area. Coordinates
         // are derived from src/composite.js's LAYOUT constants (desktop:
-        // x490 y130 w820 h461; mobile: x460 y580 w184 h400) — each point
+        // x429 y74 w918 h516; mobile: x395 y578 w206 h448) — each point
         // sits safely inside that device's screen and outside every other
         // device's bounding box in the overlapping hero-mockup layout. Only
         // desktop/mobile images are provided in this test, so laptop/tablet
@@ -138,16 +138,17 @@ test('buildComposite fits a wide, short capture to the screen width without crop
     const out = path.join(tmp, 'composite.png');
     await buildComposite(browser, { desktop: wide }, out);
 
-    // Desktop screen spans x 508..1328, y 148..609 (LAYOUT x490 y130 w820
-    // h461, plus the 18px bezel). At a correct width fit the capture renders
-    // 820x205 at the top of the screen, so sample inside that band.
+    // Desktop screen spans x 449..1367, y 94..610 (LAYOUT x429 y74 w918 h516,
+    // plus the 20px bezel). At a correct width fit the capture renders
+    // 918x230 at the top of the screen, and each 40px edge marker scales to
+    // ~19px — so sample well inside those, near the very edges.
     const { data, info } = await sharp(out).raw().toBuffer({ resolveWithObject: true });
     const at = (x, y) => {
       const i = (y * info.width + x) * info.channels;
       return { r: data[i], g: data[i + 1], b: data[i + 2] };
     };
-    const nearLeft = at(514, 198);
-    const nearRight = at(1322, 198);
+    const nearLeft = at(456, 190);
+    const nearRight = at(1360, 190);
 
     assert.ok(
       nearLeft.r > 200 && nearLeft.b < 60,

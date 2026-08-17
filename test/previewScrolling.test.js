@@ -124,3 +124,50 @@ test('scrolling one device leaves the other three where they were', async (t) =>
     );
   }
 });
+
+// The device iframes are sandboxed without allow-same-origin, so they get an
+// opaque origin — and in an opaque origin merely READING window.localStorage
+// throws. Sites routinely read a stored theme during init; that exception
+// aborted the rest of the init script, leaving every scroll-reveal element at
+// opacity 0. The preview looked like it "wasn't loading the full site":
+// headings visible, all content below them blank, on all four devices.
+test('site scripts that read localStorage still initialise inside the device frames', async (t) => {
+  const browser = await chromium.launch();
+  t.after(() => browser.close());
+
+  const outputRoot = await fs.mkdtemp(os.tmpdir() + '/preview-storage-test-');
+  const app = createApp({ outputRoot });
+  const server = app.listen(0);
+  const { port } = server.address();
+  const fixtureServer = await startLocalServer(fixtureDir);
+  t.after(async () => {
+    await new Promise((resolve) => server.close(resolve));
+    await fixtureServer.close();
+    await fs.rm(outputRoot, { recursive: true, force: true });
+  });
+
+  const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
+  const pageErrors = [];
+  page.on('pageerror', (err) => pageErrors.push(err.message));
+
+  const target = `${fixtureServer.url}/storage-reveal.html`;
+  await page.goto(`http://127.0.0.1:${port}/index.html?url=${encodeURIComponent(target)}`, {
+    waitUntil: 'load',
+  });
+
+  for (const key of DEVICES) {
+    const frame = await (await page.$(`#preview-iframe-${key}`)).contentFrame();
+    await frame.waitForLoadState('load');
+    const opacity = await frame.evaluate(
+      () => getComputedStyle(document.getElementById('card')).opacity
+    );
+    assert.equal(
+      opacity,
+      '1',
+      `${key}: the fixture's init script must have completed and revealed its content (opacity ${opacity})`
+    );
+  }
+
+  const storageErrors = pageErrors.filter((m) => /localStorage|sessionStorage|allow-same-origin/i.test(m));
+  assert.deepEqual(storageErrors, [], 'no storage SecurityErrors should reach the site scripts');
+});
