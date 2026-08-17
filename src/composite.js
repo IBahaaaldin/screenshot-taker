@@ -1,6 +1,7 @@
 // src/composite.js
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import sharp from 'sharp';
 
 const FRAME_ORDER = ['desktop', 'laptop', 'tablet', 'mobile'];
 const CANVAS_WIDTH = 2000;
@@ -38,12 +39,14 @@ export async function buildComposite(browser, imagesByViewport, outputPath) {
   }
 
   const dataUrls = {};
+  const screenBackgrounds = {};
   for (const name of entries) {
     const buffer = await fs.readFile(imagesByViewport[name]);
     dataUrls[name] = `data:image/png;base64,${buffer.toString('base64')}`;
+    screenBackgrounds[name] = await bottomEdgeColor(imagesByViewport[name]);
   }
 
-  const html = renderHtml(entries, dataUrls);
+  const html = renderHtml(entries, dataUrls, screenBackgrounds);
 
   const page = await browser.newPage({ viewport: { width: CANVAS_WIDTH, height: CANVAS_HEIGHT } });
   try {
@@ -57,11 +60,38 @@ export async function buildComposite(browser, imagesByViewport, outputPath) {
   return outputPath;
 }
 
-function renderHtml(entries, dataUrls) {
+// Average colour of the bottom sliver of a screenshot, used as the screen's
+// backdrop. A section shorter than the device's viewport can't fill the
+// screen (it's an element screenshot, so its height is whatever the section
+// is), and the leftover strip reads as a broken screen if it's left black —
+// continuing the page's own background colour instead makes it read as a
+// short page, which is what it is.
+async function bottomEdgeColor(file) {
+  try {
+    const image = sharp(file);
+    const { width, height } = await image.metadata();
+    if (!width || !height) return '#050505';
+    const stripHeight = Math.max(1, Math.round(height * 0.02));
+    const { data } = await image
+      .extract({ left: 0, top: height - stripHeight, width, height: stripHeight })
+      .resize(1, 1, { fit: 'fill' })
+      .removeAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    return `rgb(${data[0]}, ${data[1]}, ${data[2]})`;
+  } catch {
+    // Never fail a whole composite over a cosmetic backdrop.
+    return '#050505';
+  }
+}
+
+function renderHtml(entries, dataUrls, screenBackgrounds = {}) {
   // Draw back-to-front so nearer devices overlap farther ones correctly,
   // regardless of the order sections were detected in.
   const ordered = [...entries].sort((a, b) => LAYOUT[a].z - LAYOUT[b].z);
-  const frames = ordered.map((name) => frameHtml(name, dataUrls[name])).join('\n');
+  const frames = ordered
+    .map((name) => frameHtml(name, dataUrls[name], screenBackgrounds[name]))
+    .join('\n');
 
   return `<!doctype html>
 <html>
@@ -88,7 +118,15 @@ function renderHtml(entries, dataUrls) {
      public/style.css uses these exact same em values. */
   .device { position: absolute; }
   .screen { overflow: hidden; background: #050505; }
-  .screen img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
+  /* Fit the capture to the screen's WIDTH and let the height fall where it
+     may — anything past the bottom is clipped by .screen.
+     NOT object-fit:cover: a section screenshot's height is the section's own
+     height, so its ratio rarely matches the device's screen. cover scales by
+     whichever axis needs more, which for the common wide-and-short section
+     meant scaling by height and cropping the sides — magnifying the page and
+     slicing words in half. Horizontal cropping is the one thing this tool
+     must never do: the whole point is showing the layout at that width. */
+  .screen img { display: block; width: 100%; height: auto; }
 
   /* Desktop: Studio Display 27" — thin black bezel inside an aluminum
      enclosure edge, on a slim aluminum stand. Bezel is 13mm on a 596mm
@@ -226,16 +264,17 @@ function renderHtml(entries, dataUrls) {
 </html>`;
 }
 
-function frameHtml(name, dataUrl) {
+function frameHtml(name, dataUrl, screenBackground) {
   const { x, y, w, h, z } = LAYOUT[name];
   // font-size == the device's own width, so every `em` in the bezel CSS is a
   // fraction of this device (see the style block's opening comment).
   const style = `left:${x}px; top:${y}px; width:${w}px; height:${h}px; z-index:${z}; font-size:${w}px;`;
+  const screenStyle = screenBackground ? ` style="background:${screenBackground}"` : '';
 
   if (name === 'desktop') {
     return `<div class="device" style="${style}">
       <div class="desktop-bezel">
-        <div class="screen"><img src="${dataUrl}" /></div>
+        <div class="screen"${screenStyle}><img src="${dataUrl}" /></div>
       </div>
       <div class="desktop-neck"></div>
       <div class="desktop-foot"></div>
@@ -246,7 +285,7 @@ function frameHtml(name, dataUrl) {
     return `<div class="device" style="${style}">
       <div class="laptop-bezel">
         <div class="laptop-notch"></div>
-        <div class="screen"><img src="${dataUrl}" /></div>
+        <div class="screen"${screenStyle}><img src="${dataUrl}" /></div>
       </div>
       <div class="laptop-deck"></div>
     </div>`;
@@ -254,7 +293,7 @@ function frameHtml(name, dataUrl) {
 
   if (name === 'tablet') {
     return `<div class="device" style="${style}">
-      <div class="tablet-bezel"><div class="screen"><img src="${dataUrl}" /></div></div>
+      <div class="tablet-bezel"><div class="screen"${screenStyle}><img src="${dataUrl}" /></div></div>
     </div>`;
   }
 
@@ -262,7 +301,7 @@ function frameHtml(name, dataUrl) {
   return `<div class="device" style="${style}">
     <div class="mobile-bezel">
       <div class="mobile-island"></div>
-      <div class="screen"><img src="${dataUrl}" /></div>
+      <div class="screen"${screenStyle}><img src="${dataUrl}" /></div>
       <div class="mobile-home"></div>
     </div>
   </div>`;

@@ -5,6 +5,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import { chromium } from 'playwright';
+import sharp from 'sharp';
 import { buildComposite } from '../src/composite.js';
 
 async function makeSamplePng(dir, name, width, height, color) {
@@ -104,5 +105,60 @@ test('buildComposite throws when given no images', async () => {
     await assert.rejects(() => buildComposite(browser, {}, '/tmp/should-not-write.png'));
   } finally {
     await browser.close();
+  }
+});
+
+// A section screenshot's height is whatever that section happens to be, so it
+// rarely matches the device screen's aspect ratio. The composite must scale it
+// to the screen's WIDTH and clip any overflow — never scale by height and crop
+// the sides, which magnifies the page and slices words in half. That was a
+// real regression from object-fit:cover.
+test('buildComposite fits a wide, short capture to the screen width without cropping its sides', async () => {
+  const browser = await chromium.launch();
+  const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'composite-fit-'));
+  try {
+    // 1920x480 is far wider than the desktop screen's 16:9. object-fit:cover
+    // would scale by height (the axis needing more) and show only the middle
+    // ~44% of the width. Narrow markers pinned to the extreme left and right
+    // edges are the thing that survives a width fit and is destroyed by a
+    // height fit — a simple two-halves image can't tell the two apart, since
+    // both halves remain partly visible either way.
+    const EDGE = 40;
+    const wide = path.join(tmp, 'wide.png');
+    const marker = (color) =>
+      sharp({ create: { width: EDGE, height: 480, channels: 3, background: color } }).png().toBuffer();
+    await sharp({ create: { width: 1920, height: 480, channels: 3, background: { r: 250, g: 250, b: 250 } } })
+      .composite([
+        { input: await marker({ r: 255, g: 0, b: 0 }), left: 0, top: 0 },
+        { input: await marker({ r: 0, g: 0, b: 255 }), left: 1920 - EDGE, top: 0 },
+      ])
+      .png()
+      .toFile(wide);
+
+    const out = path.join(tmp, 'composite.png');
+    await buildComposite(browser, { desktop: wide }, out);
+
+    // Desktop screen spans x 508..1328, y 148..609 (LAYOUT x490 y130 w820
+    // h461, plus the 18px bezel). At a correct width fit the capture renders
+    // 820x205 at the top of the screen, so sample inside that band.
+    const { data, info } = await sharp(out).raw().toBuffer({ resolveWithObject: true });
+    const at = (x, y) => {
+      const i = (y * info.width + x) * info.channels;
+      return { r: data[i], g: data[i + 1], b: data[i + 2] };
+    };
+    const nearLeft = at(514, 198);
+    const nearRight = at(1322, 198);
+
+    assert.ok(
+      nearLeft.r > 200 && nearLeft.b < 60,
+      `the capture's far-left edge must remain visible (no side cropping), got ${JSON.stringify(nearLeft)}`
+    );
+    assert.ok(
+      nearRight.b > 200 && nearRight.r < 60,
+      `the capture's far-right edge must remain visible (no side cropping), got ${JSON.stringify(nearRight)}`
+    );
+  } finally {
+    await browser.close();
+    await fs.rm(tmp, { recursive: true, force: true });
   }
 });
