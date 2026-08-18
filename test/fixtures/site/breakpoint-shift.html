@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+<head>
+<title>Breakpoint Shift</title>
+<style>
+  body { margin: 0; }
+  section { height: 600px; }
+  /* Tall enough to count as a section on a wide viewport, but collapses below
+     the threshold on a narrow one. Detecting per viewport would find it on
+     desktop and miss it on mobile, shifting every later section index on
+     mobile alone — so section-2 would be a different part of the page on
+     different devices, with nothing to flag it. */
+  .breakpoint-shrinker { height: 400px; background: #cfc; }
+  @media (max-width: 500px) { .breakpoint-shrinker { height: 80px; } }
+</style>
+</head>
+<body>
+  <section style="background:#fee">Hero</section>
+  <div class="breakpoint-shrinker">Shrinks at narrow widths</div>
+  <section style="background:#eef">Features</section>
+  <section style="background:#efe">Pricing</section>
+</body>
+</html>

@@ -78,3 +78,30 @@ test('full-page mode returns a single entry with a null selector', async () => {
   assert.equal(sections[0].selector, null);
   await browser.close();
 });
+
+// A site's <nav> is typically 60-80px. The old 50px floor let it through, so it
+// was captured as "section-0" and produced a mockup whose four device screens
+// were ~93% empty with a sliver of nav across the top.
+const CHROME_AND_SECTIONS_HTML = `<!doctype html><html><body style="margin:0">
+  <nav style="height:68px;background:#222">Site navigation — page chrome</nav>
+  <section id="hero" style="height:600px;background:#fee">Hero</section>
+  <section id="features" style="height:600px;background:#eef">Features</section>
+</body></html>`;
+
+test('auto mode skips page chrome that is too short to be a section', async () => {
+  const browser = await chromium.launch();
+  const page = await browser.newPage({ viewport: { width: 1280, height: 1000 } });
+  try {
+    await page.setContent(CHROME_AND_SECTIONS_HTML);
+    const sections = await detectSections(page, 'auto');
+
+    const tags = [];
+    for (const s of sections) {
+      tags.push(await page.evaluate((sel) => document.querySelector(sel).tagName, s.selector));
+    }
+    assert.ok(!tags.includes('NAV'), `the 68px <nav> should not be a section, got ${tags.join(', ')}`);
+    assert.equal(sections.length, 2, 'both real content sections should still be found');
+  } finally {
+    await browser.close();
+  }
+});

@@ -34,10 +34,17 @@ export async function detectSections(page, mode, selectors = []) {
       return `body > ${segments.join(' > ')}`;
     }
 
+    // A section has to be tall enough to be worth a post. The old 50px floor
+    // let page chrome through: a site's <nav> is typically 60-80px, and it was
+    // being captured as "section-0", producing a mockup whose four device
+    // screens were ~93% empty with a sliver of nav across the top. Real
+    // content sections on the same page run 300-900px. 150px (15% of the
+    // detection viewport) clears navs and utility bars without touching them.
+    const MIN_SECTION_HEIGHT = 150;
     return roots
       .filter((el) => {
         const r = el.getBoundingClientRect();
-        return r.width > 50 && r.height > 50;
+        return r.width > 50 && r.height >= MIN_SECTION_HEIGHT;
       })
       .map((el) => cssPath(el));
   });

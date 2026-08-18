@@ -15,18 +15,48 @@ const BLANK_RETRY_WAIT_MS = 500;
 export async function captureAllViewports(browser, pageUrl, { mode, selectors = [], outputDir }) {
   const results = [];
 
+  // Detect the sections ONCE and reuse the same selectors for every device.
+  //
+  // Detection used to run per viewport, which meant "section-3" was only the
+  // same part of the page on all four devices by coincidence. Any element that
+  // fell below the size filter at one breakpoint (or was display:none there)
+  // shifted every later index on that device alone — and the composite would
+  // then show four devices displaying four DIFFERENT sections, with nothing to
+  // flag it. Detecting once makes section-N the same DOM element everywhere,
+  // by construction.
+  const plan = await planSections(browser, pageUrl, mode, selectors);
+
   for (const viewport of VIEWPORTS) {
     const viewportDir = path.join(outputDir, viewport.name);
     await fs.mkdir(viewportDir, { recursive: true });
 
-    const sections = await captureOneViewport(browser, pageUrl, viewport, mode, selectors, viewportDir);
+    const sections = await captureOneViewport(browser, pageUrl, viewport, plan, viewportDir);
     results.push({ viewport: viewport.name, sections });
   }
 
   return results;
 }
 
-async function captureOneViewport(browser, pageUrl, viewport, mode, selectors, viewportDir) {
+// Runs detection at the widest viewport, where a responsive layout shows the
+// most structure — narrow breakpoints often collapse or hide whole blocks.
+async function planSections(browser, pageUrl, mode, selectors) {
+  const widest = VIEWPORTS.reduce((a, b) => (b.width > a.width ? b : a));
+  const page = await browser.newPage();
+  try {
+    await page.setViewportSize({ width: widest.width, height: INITIAL_VIEWPORT_HEIGHT });
+    const loaded = await gotoWithRetry(page, pageUrl);
+    if (!loaded) return [];
+    await triggerScrollRevealAnimations(page);
+    return await detectSections(page, mode, selectors);
+  } catch (err) {
+    console.error(`[screenshot] failed to detect sections for ${pageUrl}: ${err.message}`);
+    return [];
+  } finally {
+    await page.close();
+  }
+}
+
+async function captureOneViewport(browser, pageUrl, viewport, sections, viewportDir) {
   const page = await browser.newPage();
   try {
     await page.setViewportSize({ width: viewport.width, height: INITIAL_VIEWPORT_HEIGHT });
@@ -39,7 +69,6 @@ async function captureOneViewport(browser, pageUrl, viewport, mode, selectors, v
 
     const written = [];
     try {
-      const sections = await detectSections(page, mode, selectors);
       for (const section of sections) {
         const filePath = path.join(viewportDir, `${section.slug}.png`);
         try {
@@ -67,7 +96,7 @@ async function captureOneViewport(browser, pageUrl, viewport, mode, selectors, v
         }
       }
     } catch (err) {
-      console.error(`[screenshot] failed to detect sections for ${pageUrl} at ${viewport.name}: ${err.message}`);
+      console.error(`[screenshot] failed to capture sections for ${pageUrl} at ${viewport.name}: ${err.message}`);
     }
     return written;
   } finally {

@@ -41,29 +41,37 @@ test('captureAllViewports writes a PNG per section per viewport', async () => {
   }
 });
 
-test('captureAllViewports does not abort the whole run when one viewport fails during section detection', async () => {
+test('a page that breaks section detection at one viewport no longer desyncs the others', async () => {
   const server = await startLocalServer(fixtureDir);
   const browser = await chromium.launch();
   const outputDir = await fs.mkdtemp(path.join(os.tmpdir(), 'shot-test-flaky-'));
   try {
-    // flaky.html throws inside detectSections' page.evaluate call, but only
-    // at the tablet viewport width (768px) — see the fixture for details.
+    // flaky.html sabotages getBoundingClientRect, but only at the tablet
+    // viewport width (768px) — see the fixture. Detection used to run once per
+    // viewport, so tablet alone would throw and come back with zero sections
+    // while the other three captured two each: the same page yielding
+    // different sections per device.
+    //
+    // Detection now runs once, at the widest viewport, and the resulting
+    // selectors are reused everywhere — so a page that misbehaves at one
+    // specific width can no longer produce that split.
     const result = await captureAllViewports(browser, `${server.url}/flaky.html`, {
       mode: 'auto',
       selectors: [],
       outputDir,
     });
 
-    // All four viewports still produce a result — the run was not aborted.
-    assert.equal(result.length, 4);
+    assert.equal(result.length, 4, 'all four viewports should still produce a result');
 
-    const tablet = result.find((r) => r.viewport === 'tablet');
-    assert.ok(tablet, 'tablet result should be present');
-    assert.deepEqual(tablet.sections, [], 'failing viewport should return no sections, not throw');
+    const counts = result.map((r) => `${r.viewport}=${r.sections.length}`);
+    assert.equal(
+      new Set(result.map((r) => r.sections.length)).size,
+      1,
+      `every viewport should capture the same sections, got ${counts.join(' ')}`
+    );
 
-    for (const viewport of ['desktop', 'laptop', 'mobile']) {
-      const entry = result.find((r) => r.viewport === viewport);
-      assert.ok(entry.sections.length > 0, `${viewport} should still capture sections`);
+    for (const entry of result) {
+      assert.ok(entry.sections.length > 0, `${entry.viewport} should capture sections`);
       for (const { path: filePath } of entry.sections) {
         const stat = await fs.stat(filePath);
         assert.ok(stat.size > 0, `${filePath} should be non-empty`);
@@ -135,4 +143,38 @@ test('a hidden selector match fails fast instead of waiting out the default acti
     await server.close();
     await fs.rm(outputDir, { recursive: true, force: true });
   }
+});
+
+// Section detection used to run once per viewport, so "section-N" was only the
+// same part of the page on all four devices by coincidence. This fixture has a
+// block that is tall enough to count as a section on desktop but collapses
+// below the threshold on mobile — under per-viewport detection mobile would
+// find one fewer section and every later index would refer to different
+// content there, producing a composite showing four different sections with
+// nothing to flag it.
+test('every viewport captures the same sections even when a block collapses at a breakpoint', async (t) => {
+  const server = await startLocalServer(fixtureDir);
+  const browser = await chromium.launch();
+  const outputDir = await fs.mkdtemp(path.join(os.tmpdir(), 'section-align-'));
+  t.after(async () => {
+    await browser.close();
+    await server.close();
+    await fs.rm(outputDir, { recursive: true, force: true });
+  });
+
+  const results = await captureAllViewports(browser, `${server.url}/breakpoint-shift.html`, {
+    mode: 'auto',
+    outputDir,
+  });
+
+  const counts = results.map((r) => `${r.viewport}=${r.sections.length}`);
+  const unique = new Set(results.map((r) => r.sections.length));
+  assert.equal(unique.size, 1, `all viewports must capture the same section count, got ${counts.join(' ')}`);
+
+  const slugsPerViewport = results.map((r) => r.sections.map((s) => s.slug).join(','));
+  assert.equal(
+    new Set(slugsPerViewport).size,
+    1,
+    `all viewports must capture the same section slugs, got ${slugsPerViewport.join(' | ')}`
+  );
 });
