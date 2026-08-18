@@ -253,6 +253,11 @@ function renderHtml(entries, dataUrls, screenBackgrounds = {}) {
       0 0.05em 0.09em -0.025em rgba(0, 0, 0, 0.5);
   }
   .mobile-bezel .screen { border-radius: 0.137em; height: 100%; position: relative; }
+  /* Safe-area inset: an iPhone 16 Pro keeps 59pt of its 402pt-wide screen for
+     the status area (0.147em), and the Dynamic Island sits centred in it.
+     Captures come from a browser with no safe area, so without this the page's
+     own header renders under the island and reads as a blob over the content. */
+  .mobile-bezel .screen img { margin-top: 0.147em; }
   .mobile-island {
     position: absolute; top: 0.028em; left: 50%; transform: translateX(-50%);
     width: 0.311em; height: 0.0896em; border-radius: 999px;
