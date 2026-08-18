@@ -935,7 +935,7 @@ body.recording-mode .preview-stage {
 .preview-frame-desktop-neck {
   position: absolute;
   left: 44.4%;
-  top: 49.1667%;
+  top: 53.7567%;
   transform: translateX(-50%);
   font-size: 45.9cqw;
   width: 0.10em;
@@ -946,7 +946,7 @@ body.recording-mode .preview-stage {
 .preview-frame-desktop-foot {
   position: absolute;
   left: 44.4%;
-  top: 62.0187%;
+  top: 66.6087%;
   transform: translateX(-50%);
   font-size: 45.9cqw;
   width: 0.40em;
@@ -987,7 +987,7 @@ body.recording-mode .preview-stage {
 .preview-frame-deck {
   position: absolute;
   left: 72.95%;
-  top: 89.8333%;
+  top: 92.2368%;
   transform: translateX(-50%);
   font-size: 43.7cqw;
   width: 1.05em;

@@ -147,14 +147,18 @@ function renderHtml(entries, dataUrls, screenBackgrounds = {}) {
   .desktop-bezel .screen { border-radius: 0.025em; height: 100%; }
   /* Stand: neck tapers outward into a shallow oval foot. */
   .desktop-neck {
-    position: absolute; left: 50%; top: 100%; transform: translateX(-50%);
+    /* +0.060em clears the bezel drawn outside this box: the CSS top edge is
+       the border-box top while the height is the CONTENT height, so border adds
+       at both top and bottom (2 x 0.022em), plus the aluminium ring
+       (0.016em). Without it the stand starts inside the monitor's own edge. */
+    position: absolute; left: 50%; top: calc(100% + 0.060em); transform: translateX(-50%);
     width: 0.10em; height: 0.168em;
     border-radius: 0 0 0.012em 0.012em;
     background: linear-gradient(90deg, #9ea1a4, #e8eaeb 40%, #b7babd 72%, #94979a);
   }
   .desktop-foot {
     position: absolute; left: 50%; transform: translateX(-50%);
-    top: calc(100% + 0.168em);
+    top: calc(100% + 0.228em);
     width: 0.40em; height: 0.024em; border-radius: 0.012em;
     background: linear-gradient(180deg, #e2e4e5, #a5a8ab);
     box-shadow: 0 0.016em 0.032em -0.012em rgba(0, 0, 0, 0.5);
@@ -185,7 +189,10 @@ function renderHtml(entries, dataUrls, screenBackgrounds = {}) {
   /* Base: the lid sits on it, so it reads slightly wider, with the
      trackpad-lip cutout at front centre. */
   .laptop-deck {
-    position: absolute; left: 50%; bottom: -0.032em; transform: translateX(-50%);
+    /* -0.065em = the deck's own 0.032em plus the lid drawn outside the box:
+       2 x 0.014em of border plus a 0.005em ring. Without it the base cuts
+       into the lid's bottom edge. */
+    position: absolute; left: 50%; bottom: -0.065em; transform: translateX(-50%);
     width: 1.05em; height: 0.032em;
     background: linear-gradient(180deg, #d5d7d9 0%, #b6b8ba 55%, #9fa2a5 100%);
     border-radius: 0 0 0.014em 0.014em;
