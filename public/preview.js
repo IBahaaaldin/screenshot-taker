@@ -1,14 +1,8 @@
-// safeAreaTop is the fraction of the device's WIDTH that its status area
-// occupies — an iPhone 16 Pro reserves 59pt of its 402pt width (0.147). These
-// captures come from a browser with no safe area, so without it the site's own
-// header renders at y=0 and slides under the Dynamic Island, which reads as a
-// black blob pasted over the content. src/composite.js insets the exported
-// screenshots the same way.
 const DEVICES = {
   desktop: { width: 1920 },
   laptop: { width: 1440 },
   tablet: { width: 768 },
-  mobile: { width: 390, safeAreaTop: 0.147 },
+  mobile: { width: 390 },
 };
 
 const form = document.getElementById('preview-form');
@@ -72,15 +66,7 @@ function scaleFramesToFit() {
     // ResizeObserver below to fire with a real size.
     if (!Number.isFinite(scale) || scale <= 0) continue;
     iframe.style.zoom = scale;
-    // Height stays the device's true viewport height so the site lays out
-    // exactly as it would on the real device; the inset shifts the page down
-    // and the overflow past the bottom is clipped by the frame, which is what
-    // a real phone shows below its status area.
     iframe.style.height = `${frame.clientHeight / scale}px`;
-    // In the iframe's own device pixels — zoom then scales it to the right
-    // proportion on screen. An em here would be multiplied by zoom twice over.
-    const inset = (config.safeAreaTop || 0) * config.width;
-    iframe.style.marginTop = inset ? `${inset}px` : '';
   }
 }
 

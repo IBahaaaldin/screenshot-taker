@@ -1061,10 +1061,6 @@ body.recording-mode .preview-stage {
     0 0 0 0.010em #7d766d,
     0 0.05em 0.09em -0.025em rgba(0, 0, 0, 0.35);
 }
-/* The safe-area inset is applied in preview.js, not here: this iframe is
-   CSS-zoomed, and the browser multiplies an em-based margin by that zoom, so
-   the inset landed about a third of its intended size. preview.js sets it in
-   the iframe's own device pixels, which zoom scales correctly. */
 .preview-frame-mobile iframe { width: 390px; }
 .preview-frame-island {
   position: absolute;
