@@ -268,7 +268,13 @@ nav .wrap {
 }
 
 .hero-frame img {
-  width: 92%;
+  /* Fixed cap, not a percentage — at 92% of the hero's 1320px wrap this
+     rendered at ~1200px wide on a normal window and blew up even bigger
+     on a wide monitor, making the devices look stretched/oversized and
+     forcing a scroll to see them at all. 640px reads as a normal, compact
+     hero graphic regardless of window width. */
+  width: 100%;
+  max-width: 640px;
 }
 
 /* ---------------------------------------------------------------
