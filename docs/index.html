@@ -8,7 +8,7 @@
 
 <meta property="og:title" content="Screenshot Taker" />
 <meta property="og:description" content="Screenshot every screen. Ready to post." />
-<meta property="og:image" content="https://ibahaaaldin.github.io/screenshot-taker/assets/devices-live.png" />
+<meta property="og:image" content="https://ibahaaaldin.github.io/screenshot-taker/assets/og-image.png" />
 <meta property="og:type" content="website" />
 <meta name="twitter:card" content="summary_large_image" />
 
@@ -50,8 +50,25 @@
       <a class="btn btn-primary" href="https://github.com/IBahaaaldin/screenshot-taker" target="_blank" rel="noopener">View on GitHub</a>
       <a class="btn btn-ghost" href="#how-it-works">See how it works ↓</a>
     </div>
-    <div class="hero-frame">
-      <img src="assets/devices-live.png" alt="This page itself, rendered across a Studio Display, MacBook Pro, iPad Pro and iPhone at once — the actual composite output this tool builds, showing itself" width="2000" height="1200" />
+    <div class="hero-devices" aria-label="This page itself, rendered across a Studio Display, MacBook Pro, iPad Pro and iPhone at once">
+      <div class="preview-frame preview-frame-desktop">
+        <img src="assets/screen-desktop.png" alt="" />
+      </div>
+      <span class="preview-frame-desktop-neck" aria-hidden="true"></span>
+      <span class="preview-frame-desktop-foot" aria-hidden="true"></span>
+      <div class="preview-frame preview-frame-laptop">
+        <span class="preview-frame-notch" aria-hidden="true"></span>
+        <img src="assets/screen-laptop.png" alt="" />
+      </div>
+      <span class="preview-frame-deck" aria-hidden="true"></span>
+      <div class="preview-frame preview-frame-tablet">
+        <img src="assets/screen-tablet.png" alt="" />
+      </div>
+      <div class="preview-frame preview-frame-mobile">
+        <span class="preview-frame-island" aria-hidden="true"></span>
+        <img src="assets/screen-mobile.png" alt="" />
+        <span class="preview-frame-home" aria-hidden="true"></span>
+      </div>
     </div>
   </div>
 </header>

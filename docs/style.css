@@ -256,25 +256,207 @@ nav .wrap {
 
 .btn-ghost:hover { border-color: var(--paper-dim); transform: translateY(-1px); }
 
-/* No card/mat here on purpose — the image is composite.js's own real
-   output (a Studio Display, MacBook Pro, iPad Pro and iPhone showing this
-   page itself), which already carries its own dark background, drop
-   shadows and device bezels. Boxing that in another frame doubled up the
-   chrome. */
-.hero-frame {
-  margin-top: 56px;
-  display: flex;
-  justify-content: center;
+/* ---------------------------------------------------------------
+   Hero devices — the REAL device component, ported class-for-class from
+   public/style.css's live preview (the app's own #preview-stage). Not a
+   flattened picture: every bezel, the stand, the notch, the island are
+   real HTML/CSS, so they stay crisp at any size instead of a raster image
+   scaling up or down. The one difference from the app: its iframes (a live
+   proxied page) are swapped for a static <img> of that device's real
+   screen content, since this static site has no server to proxy through.
+   ------------------------------------------------------------- */
+.hero-devices {
+  position: relative;
+  margin: 56px auto 0;
+  aspect-ratio: 2000 / 1200;
+  /* A fixed cap, not a percentage of the hero column — that was the exact
+     bug in the version this replaces: sized as a fraction of the wrap, it
+     grew with the window and read as stretched/oversized on a wide
+     monitor. 760px is a normal, compact hero-graphic size at any width. */
+  width: min(100%, 760px);
+  /* Makes cqw available below — every frame sets font-size to its own
+     width in cqw, so every bezel detail is a fraction of that specific
+     device and holds correct proportions as the stage itself resizes. */
+  container-type: size;
 }
 
-.hero-frame img {
-  /* Fixed cap, not a percentage — at 92% of the hero's 1320px wrap this
-     rendered at ~1200px wide on a normal window and blew up even bigger
-     on a wide monitor, making the devices look stretched/oversized and
-     forcing a scroll to see them at all. 640px reads as a normal, compact
-     hero graphic regardless of window width. */
+.preview-frame {
+  position: absolute;
+  overflow: hidden;
+  background: #050505;
+  /* content-box so each frame's width/height IS its screen — the bezel
+     border draws outside it, keeping the exact real device aspect ratio
+     instead of an inset border skewing it. */
+  box-sizing: content-box;
+}
+
+.preview-frame img {
+  display: block;
   width: 100%;
-  max-width: 640px;
+  height: auto;
+}
+
+/*   desktop  Studio Display 27"  16:9       1.7778 -> 1920x1080
+     laptop   MacBook Pro 14"     3024x1964  1.5397 -> 1440x936
+     tablet   iPad Pro 11"         834x1210  0.6893 ->  768x1114
+     mobile   iPhone 16 Pro        402x874   0.4600 ->  390x848         */
+
+.preview-frame-desktop {
+  left: 21.45%;
+  top: 6.1667%;
+  width: 45.9%;
+  height: 43%;
+  font-size: 45.9cqw;
+  border-radius: 0.047em;
+  border: 0.022em solid #0a0a0b;
+  background: #0a0a0b;
+  box-shadow:
+    0 0 0 0.016em #c6c8ca,
+    0 0.05em 0.09em -0.025em rgba(0, 0, 0, 0.35);
+}
+
+.preview-frame-desktop-neck {
+  position: absolute;
+  left: 44.4%;
+  top: 53.7567%;
+  transform: translateX(-50%);
+  font-size: 45.9cqw;
+  width: 0.10em;
+  height: 0.168em;
+  border-radius: 0 0 0.012em 0.012em;
+  background: linear-gradient(90deg, #9ea1a4, #e8eaeb 40%, #b7babd 72%, #94979a);
+}
+.preview-frame-desktop-foot {
+  position: absolute;
+  left: 44.4%;
+  top: 66.6087%;
+  transform: translateX(-50%);
+  font-size: 45.9cqw;
+  width: 0.40em;
+  height: 0.024em;
+  border-radius: 0.012em;
+  background: linear-gradient(180deg, #e2e4e5, #a5a8ab);
+  box-shadow: 0 0.016em 0.032em -0.012em rgba(0, 0, 0, 0.35);
+}
+
+.preview-frame-laptop {
+  left: 51.1%;
+  top: 42.5%;
+  width: 43.7%;
+  height: 47.3333%;
+  font-size: 43.7cqw;
+  border-radius: 0.024em 0.024em 0.006em 0.006em;
+  border: 0.014em solid #2e3033;
+  background: #2e3033;
+  box-shadow:
+    0 0 0 0.005em #4a4d51,
+    0 0.05em 0.09em -0.025em rgba(0, 0, 0, 0.35);
+}
+.preview-frame-notch {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0.07em;
+  height: 0.027em;
+  border-radius: 0 0 0.013em 0.013em;
+  background: #2e3033;
+  z-index: 2;
+}
+
+.preview-frame-deck {
+  position: absolute;
+  left: 72.95%;
+  top: 92.2368%;
+  transform: translateX(-50%);
+  font-size: 43.7cqw;
+  width: 1.05em;
+  height: 0.032em;
+  border-radius: 0 0 0.014em 0.014em;
+  background: linear-gradient(180deg, #d5d7d9 0%, #b6b8ba 55%, #9fa2a5 100%);
+}
+.preview-frame-deck::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 0.004em;
+  background: rgba(0, 0, 0, 0.28);
+}
+.preview-frame-deck::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 0.14em;
+  height: 0.008em;
+  border-radius: 0.006em 0.006em 0 0;
+  background: #93969a;
+}
+
+.preview-frame-tablet {
+  left: 6.3%;
+  top: 36%;
+  width: 18.15%;
+  height: 43.8333%;
+  font-size: 18.15cqw;
+  border-radius: 0.078em;
+  border: 0.056em solid #d5d6d8;
+  background: linear-gradient(155deg, #e4e5e7, #c2c4c6);
+  box-shadow:
+    0 0 0 0.006em #a9acaf,
+    0 0.05em 0.09em -0.025em rgba(0, 0, 0, 0.32);
+}
+.preview-frame-tablet::before {
+  content: '';
+  position: absolute;
+  top: 0.020em;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0.016em;
+  height: 0.016em;
+  border-radius: 50%;
+  background: #23252a;
+  z-index: 2;
+}
+
+.preview-frame-mobile {
+  left: 19.75%;
+  top: 48.1667%;
+  width: 10.3%;
+  height: 37.3333%;
+  font-size: 10.3cqw;
+  border-radius: 0.172em;
+  border: 0.035em solid #b0a89d;
+  background: linear-gradient(155deg, #c3bbb0, #8f877d);
+  box-shadow:
+    0 0 0 0.010em #7d766d,
+    0 0.05em 0.09em -0.025em rgba(0, 0, 0, 0.35);
+}
+.preview-frame-island {
+  position: absolute;
+  top: 0.028em;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0.311em;
+  height: 0.0896em;
+  border-radius: 999px;
+  background: #050505;
+  box-shadow: 0 0 0 0.002em rgba(255, 255, 255, 0.16);
+  z-index: 2;
+}
+.preview-frame-home {
+  position: absolute;
+  bottom: 0.021em;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0.348em;
+  height: 0.013em;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.6);
+  z-index: 2;
 }
 
 /* ---------------------------------------------------------------
