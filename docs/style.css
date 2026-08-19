@@ -1,0 +1,511 @@
+/* ---------------------------------------------------------------
+   Screenshot Taker — marketing site
+   Aesthetic: analog darkroom. The app's own UI already speaks this
+   language (Live preview / Load the roll / In the darkroom / Contact
+   sheet) — this site commits to it fully: safelight red, film grain,
+   sprocket-hole rules, contact-sheet grids, EXIF-style mono labels.
+   ------------------------------------------------------------- */
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,380..900&family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --black: #0b0a09;
+  --charcoal: #161412;
+  --panel: #1c1917;
+  --line: #322d29;
+  --paper: #f2ede2;
+  --paper-dim: #b6ada0;
+  --paper-faint: #7a7168;
+  --safelight: #ff4d2e;
+  --safelight-dim: #7a2417;
+  --safelight-glow: rgba(255, 77, 46, 0.35);
+
+  --font-display: 'Fraunces', ui-serif, Georgia, serif;
+  --font-body: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--black);
+  color: var(--paper);
+  font-family: var(--font-body);
+  line-height: 1.6;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Film grain — a tiled SVG noise filter over everything, fixed so it doesn't
+   scroll separately from the content. Subtle: this is texture, not decoration
+   that competes with the content. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+img { display: block; max-width: 100%; }
+
+a { color: inherit; }
+
+.wrap {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+
+/* ---------------------------------------------------------------
+   Sprocket-hole rule — a film-strip edge used between sections
+   ------------------------------------------------------------- */
+
+.sprockets {
+  height: 22px;
+  background-image: radial-gradient(circle, var(--charcoal) 3.5px, transparent 3.6px);
+  background-size: 28px 22px;
+  background-position: 14px center;
+  background-color: var(--black);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+/* ---------------------------------------------------------------
+   Nav
+   ------------------------------------------------------------- */
+
+nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(11, 10, 9, 0.86);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+
+nav .wrap {
+  height: 76px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+}
+
+.brand .shutter {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid var(--paper);
+  position: relative;
+  flex-shrink: 0;
+}
+
+.brand .shutter::before {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  background: var(--safelight);
+  box-shadow: 0 0 14px 2px var(--safelight-glow);
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+}
+
+.nav-links a {
+  text-decoration: none;
+  color: var(--paper-dim);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  transition: color 0.15s ease;
+}
+
+.nav-links a:hover { color: var(--paper); }
+
+.nav-links a.cta {
+  color: var(--black);
+  background: var(--paper);
+  padding: 9px 16px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.nav-links a.cta:hover { background: var(--safelight); color: var(--paper); }
+
+.nav-links svg { width: 15px; height: 15px; }
+
+/* ---------------------------------------------------------------
+   Hero
+   ------------------------------------------------------------- */
+
+.hero {
+  position: relative;
+  padding: 96px 0 80px;
+  background:
+    radial-gradient(ellipse 900px 480px at 20% -10%, var(--safelight-glow), transparent 60%),
+    var(--black);
+  overflow: hidden;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--safelight);
+  margin-bottom: 22px;
+}
+
+.eyebrow::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--safelight);
+  box-shadow: 0 0 8px 1px var(--safelight-glow);
+}
+
+.hero h1 {
+  font-family: var(--font-display);
+  font-weight: 620;
+  font-size: clamp(2.6rem, 5.6vw, 4.6rem);
+  line-height: 1.03;
+  letter-spacing: -0.015em;
+  max-width: 15ch;
+  color: var(--paper);
+}
+
+.hero h1 em {
+  font-style: italic;
+  font-weight: 380;
+  color: var(--paper-dim);
+}
+
+.hero .lede {
+  margin-top: 26px;
+  font-size: 1.15rem;
+  color: var(--paper-dim);
+  max-width: 46ch;
+  line-height: 1.6;
+}
+
+.hero-ctas {
+  display: flex;
+  gap: 14px;
+  margin-top: 38px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 14px 26px;
+  border-radius: 999px;
+  text-decoration: none;
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  border: 1px solid transparent;
+}
+
+.btn-primary {
+  background: var(--paper);
+  color: var(--black);
+}
+
+.btn-primary:hover { background: var(--safelight); color: var(--paper); transform: translateY(-1px); }
+
+.btn-ghost {
+  border-color: var(--line);
+  color: var(--paper);
+}
+
+.btn-ghost:hover { border-color: var(--paper-dim); transform: translateY(-1px); }
+
+.hero-frame {
+  margin-top: 64px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: var(--charcoal);
+  padding: 10px;
+  box-shadow: 0 40px 90px -30px rgba(0, 0, 0, 0.7);
+}
+
+.hero-frame img {
+  border-radius: 11px;
+  width: 100%;
+}
+
+/* ---------------------------------------------------------------
+   Section scaffolding — every step section carries the app's own
+   "01 / 02 / 03 / 04" language so the site and the tool read as one
+   voice.
+   ------------------------------------------------------------- */
+
+section.step {
+  padding: 88px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.step-head {
+  display: flex;
+  align-items: baseline;
+  gap: 22px;
+  margin-bottom: 20px;
+}
+
+.step-no {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--safelight);
+  border: 1px solid var(--safelight-dim);
+  border-radius: 4px;
+  padding: 4px 9px;
+  letter-spacing: 0.06em;
+}
+
+.step h2 {
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  font-weight: 560;
+  color: var(--paper);
+  letter-spacing: -0.01em;
+}
+
+.step .step-body {
+  max-width: 62ch;
+  color: var(--paper-dim);
+  font-size: 1.05rem;
+}
+
+.step-grid {
+  margin-top: 44px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.frame-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 26px;
+}
+
+.frame-card .glyph {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--black);
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 18px;
+  color: var(--safelight);
+}
+
+.frame-card .glyph svg { width: 20px; height: 20px; }
+
+.frame-card h3 {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 1.02rem;
+  margin-bottom: 8px;
+  color: var(--paper);
+}
+
+.frame-card p {
+  font-size: 0.92rem;
+  color: var(--paper-dim);
+  line-height: 1.55;
+}
+
+/* ---------------------------------------------------------------
+   Contact sheet — a grid of device-mockup thumbnails
+   ------------------------------------------------------------- */
+
+.contact-sheet {
+  margin-top: 44px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.contact-frame {
+  aspect-ratio: 4 / 3;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background:
+    linear-gradient(155deg, #232019, #14120f);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.contact-frame::after {
+  content: attr(data-label);
+  position: absolute;
+  bottom: 8px;
+  left: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  color: var(--paper-faint);
+  text-transform: uppercase;
+}
+
+.contact-frame .mini-device {
+  width: 46%;
+  border-radius: 4px;
+  background: linear-gradient(160deg, #e7e2d6, #b9b2a4);
+  aspect-ratio: 16/10;
+}
+
+.contact-frame[data-shape="tall"] .mini-device { aspect-ratio: 9/16; width: 26%; border-radius: 8px; }
+.contact-frame[data-shape="tablet"] .mini-device { aspect-ratio: 3/4; width: 34%; border-radius: 7px; }
+
+/* ---------------------------------------------------------------
+   Spec strip — EXIF-style metadata band
+   ------------------------------------------------------------- */
+
+.spec-strip {
+  padding: 46px 0;
+  background: var(--charcoal);
+  border-bottom: 1px solid var(--line);
+}
+
+.spec-strip .wrap {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+}
+
+.spec {
+  font-family: var(--font-mono);
+}
+
+.spec .k {
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--paper-faint);
+  margin-bottom: 6px;
+}
+
+.spec .v {
+  font-size: 1.05rem;
+  color: var(--paper);
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------------
+   CTA band
+   ------------------------------------------------------------- */
+
+.cta-band {
+  padding: 110px 0;
+  text-align: center;
+  position: relative;
+  background: radial-gradient(ellipse 700px 380px at 50% 30%, var(--safelight-glow), transparent 65%), var(--black);
+}
+
+.cta-band h2 {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  font-weight: 600;
+  max-width: 18ch;
+  margin: 0 auto 20px;
+  letter-spacing: -0.01em;
+}
+
+.cta-band p {
+  color: var(--paper-dim);
+  max-width: 46ch;
+  margin: 0 auto 36px;
+  font-size: 1.05rem;
+}
+
+.cta-band .hero-ctas { justify-content: center; }
+
+/* ---------------------------------------------------------------
+   Footer
+   ------------------------------------------------------------- */
+
+footer {
+  padding: 48px 0;
+  background: var(--black);
+}
+
+footer .wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--paper-faint);
+}
+
+footer a {
+  color: var(--paper-dim);
+  text-decoration: none;
+}
+
+footer a:hover { color: var(--paper); }
+
+footer .foot-links {
+  display: flex;
+  gap: 22px;
+}
+
+/* ---------------------------------------------------------------
+   Responsive
+   ------------------------------------------------------------- */
+
+@media (max-width: 860px) {
+  .step-grid { grid-template-columns: 1fr; }
+  .contact-sheet { grid-template-columns: repeat(2, 1fr); }
+  .spec-strip .wrap { grid-template-columns: repeat(2, 1fr); }
+  .nav-links { gap: 12px; }
+  .nav-links span.label { display: none; }
+  .nav-links a.cta { padding: 9px 14px; white-space: nowrap; }
+}
+
+@media (max-width: 560px) {
+  .wrap { padding: 0 20px; }
+  .hero { padding: 64px 0 56px; }
+  section.step { padding: 64px 0; }
+  .contact-sheet { grid-template-columns: 1fr 1fr; }
+}

@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Screenshot Taker — screenshot every screen, ready to post</title>
+<meta name="description" content="Point it at a website and it crawls every page, screenshots every section at 4 real device sizes, and builds Instagram-ready composite mockups. Free, open source, runs on your Mac." />
+
+<meta property="og:title" content="Screenshot Taker" />
+<meta property="og:description" content="Screenshot every screen. Ready to post." />
+<meta property="og:image" content="https://ibahaaaldin.github.io/screenshot-taker/assets/app-preview.png" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary_large_image" />
+
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230b0a09'/%3E%3Ccircle cx='50' cy='52' r='24' fill='none' stroke='%23f2ede2' stroke-width='6'/%3E%3Ccircle cx='50' cy='52' r='10' fill='%23ff4d2e'/%3E%3Crect x='36' y='24' width='10' height='8' rx='2' fill='%23f2ede2'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a href="#top" class="brand">
+      <span class="shutter"></span>
+      Screenshot Taker
+    </a>
+    <div class="nav-links">
+      <a href="#how-it-works"><span class="label">How it works</span></a>
+      <a href="#specs"><span class="label">Specs</span></a>
+      <a href="https://github.com/IBahaaaldin/screenshot-taker" target="_blank" rel="noopener">
+        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+      <a href="https://github.com/IBahaaaldin/screenshot-taker#run" target="_blank" rel="noopener" class="cta">Get the app</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap">
+    <div class="eyebrow">Free &amp; open source · macOS</div>
+    <h1>Screenshot every screen.<br><em>Ready to post.</em></h1>
+    <p class="lede">
+      Point it at a website — a live URL or a local project folder. It crawls every page,
+      screenshots every section at four real device sizes, and builds one composite hero
+      mockup per section: desktop, laptop, tablet and phone, overlapped and styled after
+      current Apple hardware. No more resizing a browser window and cropping screenshots
+      by hand.
+    </p>
+    <div class="hero-ctas">
+      <a class="btn btn-primary" href="https://github.com/IBahaaaldin/screenshot-taker" target="_blank" rel="noopener">View on GitHub</a>
+      <a class="btn btn-ghost" href="#how-it-works">See how it works ↓</a>
+    </div>
+    <div class="hero-frame">
+      <img src="assets/app-preview.png" alt="Screenshot Taker's live preview showing one site rendered across a desktop monitor, laptop, tablet and phone at once" width="1400" height="800" />
+    </div>
+  </div>
+</header>
+
+<div class="sprockets"></div>
+
+<section class="step" id="how-it-works">
+  <div class="wrap">
+    <div class="step-head">
+      <span class="step-no">01</span>
+      <h2>Live preview</h2>
+    </div>
+    <p class="step-body">
+      Paste a URL and see it live across all four device sizes at once, before you capture
+      anything. Every frame scrolls on its own and every frame follows a link click to the
+      same page — it's the closest thing to standing in front of the real site at every
+      screen size simultaneously.
+    </p>
+    <div class="step-grid">
+      <div class="frame-card">
+        <div class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+        <h3>Real Apple proportions</h3>
+        <p>Studio Display, MacBook Pro, iPad Pro and iPhone — modelled to the actual hardware, not a rough approximation.</p>
+      </div>
+      <div class="frame-card">
+        <div class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12a8 8 0 0 1 14.93-4M20 12a8 8 0 0 1-14.93 4"/><path d="M17 4v4h-4M7 20v-4h4"/></svg></div>
+        <h3>Independent scroll</h3>
+        <p>Park the phone on one section while you inspect another on the desktop view — nothing is locked together.</p>
+      </div>
+      <div class="frame-card">
+        <div class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9 12h6M12 9v6"/></svg></div>
+        <h3>Cookie banners hidden</h3>
+        <p>Consent overlays are hidden before every capture — never clicked, never consented to on your behalf.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="step" id="load-the-roll">
+  <div class="wrap">
+    <div class="step-head">
+      <span class="step-no">02</span>
+      <h2>Load the roll</h2>
+    </div>
+    <p class="step-body">
+      Give it a homepage URL — or the path to a local project folder — and it follows every
+      same-domain link to find every page. Localized sites, templated listing pages and
+      linked PDFs are all handled: real pages are kept, near-duplicates and non-page files
+      are filtered out automatically.
+    </p>
+    <div class="step-grid">
+      <div class="frame-card">
+        <div class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M2 12h20"/></svg></div>
+        <h3>Follows every page</h3>
+        <p>Same-domain links are crawled automatically, including behind a locale prefix like /en or /en-US.</p>
+      </div>
+      <div class="frame-card">
+        <div class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M4 9h16"/></svg></div>
+        <h3>Local folders too</h3>
+        <p>Point it at a folder with an index.html and it's served automatically — no live URL required.</p>
+      </div>
+      <div class="frame-card">
+        <div class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2 4 4 8-8 4 4"/></svg></div>
+        <h3>Skips the noise</h3>
+        <p>Linked PDFs, images and broken links never make it into the crawl. Only real pages get captured.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="step" id="in-the-darkroom">
+  <div class="wrap">
+    <div class="step-head">
+      <span class="step-no">03</span>
+      <h2>In the darkroom</h2>
+    </div>
+    <p class="step-body">
+      Every page is developed at four viewports — desktop, laptop, tablet and mobile — with
+      sections auto-detected from the page's own structure, or captured full-page, or
+      targeted with your own CSS selectors. Near-blank captures caught mid-animation are
+      retried automatically.
+    </p>
+    <div class="step-grid">
+      <div class="frame-card">
+        <div class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></div>
+        <h3>Auto-detected sections</h3>
+        <p>Reads the page's real structure — including framework wrappers like &lt;main&gt; — to find each actual content block.</p>
+      </div>
+      <div class="frame-card">
+        <div class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></svg></div>
+        <h3>4 viewports, every time</h3>
+        <p>1920 / 1440 / 768 / 390px — the exact widths of a Studio Display, MacBook Pro, iPad Pro and iPhone.</p>
+      </div>
+      <div class="frame-card">
+        <div class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg></div>
+        <h3>Retries the blank ones</h3>
+        <p>A capture caught mid-transition or mid-hydration is detected and re-shot automatically.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="step" id="contact-sheet">
+  <div class="wrap">
+    <div class="step-head">
+      <span class="step-no">04</span>
+      <h2>Contact sheet</h2>
+    </div>
+    <p class="step-body">
+      Every section becomes one composite hero image — all four devices overlapped in a
+      single frame — plus a left/right split ready to post as a two-slide carousel.
+      Captions are generated per section, varied enough that a hundred-post run doesn't
+      read as the same post copied a hundred times.
+    </p>
+    <div class="contact-sheet">
+      <div class="contact-frame" data-label="Section 01"><div class="mini-device"></div></div>
+      <div class="contact-frame" data-shape="tablet" data-label="Section 02"><div class="mini-device"></div></div>
+      <div class="contact-frame" data-shape="tall" data-label="Section 03"><div class="mini-device"></div></div>
+      <div class="contact-frame" data-label="Section 04"><div class="mini-device"></div></div>
+      <div class="contact-frame" data-label="Section 05"><div class="mini-device"></div></div>
+      <div class="contact-frame" data-shape="tall" data-label="Section 06"><div class="mini-device"></div></div>
+      <div class="contact-frame" data-shape="tablet" data-label="Section 07"><div class="mini-device"></div></div>
+      <div class="contact-frame" data-label="Section 08"><div class="mini-device"></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="spec-strip" id="specs">
+  <div class="wrap">
+    <div class="spec">
+      <div class="k">Viewports</div>
+      <div class="v">1920 · 1440 · 768 · 390</div>
+    </div>
+    <div class="spec">
+      <div class="k">Runtime</div>
+      <div class="v">Node.js ≥ 20.9</div>
+    </div>
+    <div class="spec">
+      <div class="k">License</div>
+      <div class="v">MIT · Open source</div>
+    </div>
+    <div class="spec">
+      <div class="k">Output</div>
+      <div class="v">PNG + manifest.json</div>
+    </div>
+  </div>
+</section>
+
+<section class="cta-band">
+  <div class="wrap">
+    <h2>Stop resizing your browser window by hand.</h2>
+    <p>Free, open source, and runs entirely on your own machine — nothing leaves your Mac except the posts you choose to publish.</p>
+    <div class="hero-ctas">
+      <a class="btn btn-primary" href="https://github.com/IBahaaaldin/screenshot-taker" target="_blank" rel="noopener">View on GitHub</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>© 2026 Bahaa Mohammed · MIT License</div>
+    <div class="foot-links">
+      <a href="https://github.com/IBahaaaldin" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://www.linkedin.com/in/ibahaaaldin" target="_blank" rel="noopener">LinkedIn</a>
+      <a href="https://ibahaaaldin.github.io" target="_blank" rel="noopener">Portfolio</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
