@@ -18,9 +18,48 @@ export async function detectSections(page, mode, selectors = []) {
   // mode === 'auto'
   const cssPaths = await page.evaluate(() => {
     const skip = new Set(['SCRIPT', 'STYLE', 'LINK', 'NOSCRIPT', 'META']);
-    let roots = Array.from(document.body.children).filter((el) => !skip.has(el.tagName));
-    if (roots.length === 1 && roots[0].children.length > 1) {
-      roots = Array.from(roots[0].children).filter((el) => !skip.has(el.tagName));
+    const kids = (el) => Array.from(el.children).filter((c) => !skip.has(c.tagName));
+
+    // A section has to be tall enough to be worth a post. A site's <nav> is
+    // typically 60-80px; real content sections run 300-900px. 150px clears
+    // navs and utility bars without touching real sections.
+    const MIN_SECTION_HEIGHT = 150;
+    // Above this, an element is a page wrapper rather than one section, so we
+    // look inside it for the real sections. Framework sites (Next/Nuxt/etc.)
+    // wrap everything in <main>, sometimes several divs deep — on a real site
+    // that made "section-0" a single 15,422px capture of the whole page, of
+    // which only the top ~7% was visible in the device frame.
+    const WRAPPER_HEIGHT = 2500;
+    const MAX_DEPTH = 6;
+
+    const tall = (el) => el.getBoundingClientRect().height;
+    const isSection = (el) => {
+      const r = el.getBoundingClientRect();
+      return r.width > 50 && r.height >= MIN_SECTION_HEIGHT;
+    };
+
+    // Replace any wrapper with the sections inside it, repeatedly. A wrapper is
+    // only opened when doing so actually yields more than one section —
+    // otherwise a tall single section would be shredded into its own contents.
+    function expand(elements, depth) {
+      if (depth >= MAX_DEPTH) return elements;
+      const out = [];
+      let changed = false;
+      for (const el of elements) {
+        const children = kids(el).filter(isSection);
+        if (tall(el) > WRAPPER_HEIGHT && children.length > 1) {
+          out.push(...children);
+          changed = true;
+        } else if (tall(el) > WRAPPER_HEIGHT && children.length === 1) {
+          // A lone wrapper child (e.g. <main> > <div>) — descend through it
+          // without treating it as a section boundary.
+          out.push(children[0]);
+          changed = true;
+        } else {
+          out.push(el);
+        }
+      }
+      return changed ? expand(out, depth + 1) : out;
     }
 
     function cssPath(el) {
@@ -34,19 +73,8 @@ export async function detectSections(page, mode, selectors = []) {
       return `body > ${segments.join(' > ')}`;
     }
 
-    // A section has to be tall enough to be worth a post. The old 50px floor
-    // let page chrome through: a site's <nav> is typically 60-80px, and it was
-    // being captured as "section-0", producing a mockup whose four device
-    // screens were ~93% empty with a sliver of nav across the top. Real
-    // content sections on the same page run 300-900px. 150px (15% of the
-    // detection viewport) clears navs and utility bars without touching them.
-    const MIN_SECTION_HEIGHT = 150;
-    return roots
-      .filter((el) => {
-        const r = el.getBoundingClientRect();
-        return r.width > 50 && r.height >= MIN_SECTION_HEIGHT;
-      })
-      .map((el) => cssPath(el));
+    const roots = Array.from(document.body.children).filter((el) => !skip.has(el.tagName));
+    return expand(roots.filter(isSection), 0).map((el) => cssPath(el));
   });
 
   if (cssPaths.length === 0) {

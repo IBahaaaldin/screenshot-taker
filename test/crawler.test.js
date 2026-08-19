@@ -158,3 +158,32 @@ test('crawlSite still returns the start page when it loads fine', async (t) => {
     `the start page should be included, got: ${pages.join(', ')}`
   );
 });
+
+// A localized site puts every top-level page one segment deep (/en/about,
+// /en/products, /en/contact), so counting the locale as a path level made them
+// all share the parent key "en" and collapse into a single kept page. On a real
+// site that meant 18 pages found and only 3 kept.
+test('dedupeTemplatePages does not collapse top-level pages behind a locale prefix', () => {
+  const urls = [
+    'https://x.com/en',
+    'https://x.com/en/about',
+    'https://x.com/en/products',
+    'https://x.com/en/contact',
+    'https://x.com/en/certifications',
+  ];
+  assert.deepEqual(dedupeTemplatePages(urls), urls, 'every locale-prefixed top-level page should survive');
+});
+
+test('dedupeTemplatePages still groups detail pages under a locale prefix', () => {
+  const kept = dedupeTemplatePages([
+    'https://x.com/en/products/liquid-detergent',
+    'https://x.com/en/products/dish-wash',
+    'https://x.com/en/products/bleach',
+  ]);
+  assert.deepEqual(kept, ['https://x.com/en/products/liquid-detergent']);
+});
+
+test('dedupeTemplatePages treats a region locale (en-US) the same way', () => {
+  const urls = ['https://x.com/en-US/about', 'https://x.com/en-US/pricing'];
+  assert.deepEqual(dedupeTemplatePages(urls), urls);
+});

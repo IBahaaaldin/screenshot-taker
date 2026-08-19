@@ -106,6 +106,21 @@ function normalize(url) {
   return u.href;
 }
 
+// A leading locale segment — /en, /en-US, /fr/... — is routing, not structure.
+// Counting it as a path level made every top-level page on a localized site
+// look like a template detail page: /en/about, /en/products, /en/contact and
+// /en/certifications all reduced to the parent key "en" and collapsed into a
+// single kept page. On a real site that meant 18 pages found and only 3 kept.
+const LOCALE_SEGMENT_RE = /^[a-z]{2}(-[a-z0-9]{2,4})?$/i;
+
+function structuralSegments(pathname) {
+  const segments = pathname.split('/').filter(Boolean);
+  if (segments.length > 1 && LOCALE_SEGMENT_RE.test(segments[0])) {
+    return segments.slice(1);
+  }
+  return segments;
+}
+
 // Sites with product/blog/category listings can have hundreds of near-
 // identical detail pages (same template, different slug) — e.g.
 // /products/liquid-detergent, /products/dish-wash, /products/bleach, or
@@ -120,7 +135,7 @@ export function dedupeTemplatePages(urls) {
   const seen = new Set();
   const kept = [];
   for (const url of urls) {
-    const segments = new URL(url).pathname.split('/').filter(Boolean);
+    const segments = structuralSegments(new URL(url).pathname);
     if (segments.length < 2) {
       kept.push(url);
       continue;
