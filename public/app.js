@@ -182,51 +182,39 @@ function logLine(type, message) {
   li.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
-function draftCaption({ siteName, pageUrl, slug }) {
-  const HASHTAGS = [
-    '#WebDesign', '#ResponsiveDesign', '#UIUXDesign', '#FrontendDevelopment',
-    '#WebDeveloper', '#FreelanceDesigner', '#WebsiteLaunch', '#CleanUI',
-    '#ModernDesign', '#WebDevLife', '#DigitalMarketing', '#SmallBusinessWebsite',
-    '#BrandIdentity', '#CreativeCoding', '#WebsiteForBusiness', '#StartupWebsite',
-    '#ProfessionalPortfolio', '#DesignForBusiness', '#WebsiteDesign', '#UXDesign',
-  ].join(' ');
-
-  const generic = /^section-\d+$/.test(slug);
-  let heading = slug;
-  if (generic) {
-    const { pathname } = new URL(pageUrl);
-    const base = pathname.replace(/^\/+|\/+$/g, '').replace(/\.html$/, '');
-    heading = base === '' || base === 'index' ? 'home' : base;
+async function draftCaption({ siteName, pageUrl, kind, slug, slideCount }) {
+  const params = new URLSearchParams({ siteName, pageUrl, kind: kind === 'carousel' ? 'carousel' : 'single' });
+  if (kind === 'carousel') {
+    params.set('slideCount', String(slideCount));
+  } else {
+    params.set('slug', slug);
   }
-
-  return [
-    `🔥 Just Delivered: ${siteName}, Digitally Served`,
-    '',
-    `Proud to unveil the latest build — a custom ${heading} experience for ${siteName}, crafted to turn visitors into customers.`,
-    '',
-    "This isn't just a website — it's a digital storefront where every scroll, tap, and swipe was designed on purpose. Built to feel as good on a phone as it does on a 27\" monitor.",
-    '',
-    '✨ Features include:',
-    '✅ Fully responsive design (desktop → tablet → mobile)',
-    '✅ Clean, modern UI with a layout that actually converts',
-    '✅ Fast load times & SEO-friendly structure',
-    '✅ Built for real businesses — not just portfolios',
-    '',
-    '💡 Ready to go live and start turning browsers into customers.',
-    '',
-    "👉 Want a website like this for your business? Let's talk — DM me or check the link in bio.",
-    '',
-    HASHTAGS,
-  ].join('\n');
+  const res = await fetch(`/api/caption/draft?${params.toString()}`);
+  const body = await res.json();
+  if (!res.ok) {
+    throw new Error(body.error || `Failed to draft a caption (status ${res.status})`);
+  }
+  return body.caption;
 }
 
-function openCaptionModal({ siteName, pageUrl, kind, images, slugForDraft }) {
+// This is the same generateCaption/generateCarouselCaption auto-posting
+// itself uses (via /api/caption/draft) — not a separate reimplementation —
+// so what shows here is what auto-posting would actually produce, editable
+// before it's queued.
+async function openCaptionModal({ siteName, pageUrl, kind, images, slugForDraft, slideCount }) {
   pendingPost = { siteName, pageUrl, kind, images };
   captionModalTitle.textContent = kind === 'carousel' ? 'Post page as carousel' : 'Post section';
-  captionText.value = draftCaption({ siteName, pageUrl, slug: slugForDraft });
   captionError.hidden = true;
   captionModal.hidden = false;
+  captionText.value = 'Drafting caption…';
   captionText.focus();
+  try {
+    captionText.value = await draftCaption({ siteName, pageUrl, kind, slug: slugForDraft, slideCount });
+  } catch (err) {
+    captionText.value = '';
+    captionError.textContent = err.message;
+    captionError.hidden = false;
+  }
 }
 
 function closeCaptionModal() {
@@ -360,7 +348,7 @@ function renderGallery(manifest, runId) {
           pageUrl: page.url,
           kind: 'carousel',
           images: carouselImages,
-          slugForDraft: page.sections[0].slug,
+          slideCount: carouselImages.length,
         })
       );
       pageBlock.appendChild(carouselBtn);

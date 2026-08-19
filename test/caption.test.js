@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { generateCaption } from '../src/caption.js';
+import { generateCaption, generateCarouselCaption } from '../src/caption.js';
 
 const base = { siteName: 'baba-ganoush', pageUrl: 'https://example.com/index.html' };
 
@@ -117,6 +117,48 @@ test('humanizes a dashed siteName into a real brand name instead of pasting the 
 test('leaves an already-proper-cased siteName alone', () => {
   const caption = generateCaption({ ...base, siteName: 'EcoClean', slug: 'section-0' });
   assert.match(caption, /EcoClean/);
+});
+
+// generateCaption produces one caption per section — fine for a multi-page
+// business site posted as a daily drip, but every section of a single-page
+// site collapses to the same page-level heading, so posting each section
+// separately reads as the same caption repeated. A carousel posts the whole
+// page as one swipeable post, so it needs its own caption, not N duplicates.
+test('carousel caption mentions all slides and includes a feature checklist and hashtags', () => {
+  const caption = generateCarouselCaption({ siteName: 'baba-ganoush', pageUrl: 'https://example.com/', slideCount: 6 });
+  assert.match(caption, /6 slides/);
+  assert.match(caption, /Baba Ganoush/);
+  assert.match(caption, /Features include:/);
+  const lastLine = caption.split('\n').at(-1);
+  assert.ok(lastLine.startsWith('#'));
+  assert.equal(lastLine.split(' ').length, 12);
+});
+
+test('carousel caption with a single slide reads naturally instead of "1 slides"', () => {
+  const caption = generateCarouselCaption({ siteName: 'baba-ganoush', pageUrl: 'https://example.com/', slideCount: 1 });
+  assert.doesNotMatch(caption, /1 slides/);
+  assert.match(caption, /one shot/i);
+});
+
+test('carousel caption rejects a non-positive-integer slideCount', () => {
+  assert.throws(() => generateCarouselCaption({ siteName: 'x', pageUrl: 'https://example.com/', slideCount: 0 }));
+  assert.throws(() => generateCarouselCaption({ siteName: 'x', pageUrl: 'https://example.com/', slideCount: 1.5 }));
+  assert.throws(() => generateCarouselCaption({ siteName: 'x', pageUrl: 'https://example.com/', slideCount: undefined }));
+});
+
+test('carousel caption is deterministic and does not repeat the brand name as its own heading', () => {
+  const a = generateCarouselCaption({ siteName: 'screenshot-taker', pageUrl: 'https://ibahaaaldin.github.io/screenshot-taker/', slideCount: 6 });
+  const b = generateCarouselCaption({ siteName: 'screenshot-taker', pageUrl: 'https://ibahaaaldin.github.io/screenshot-taker/', slideCount: 6 });
+  assert.equal(a, b);
+  assert.doesNotMatch(a, /Screenshot Taker('s new| \(the\)?)? Screenshot Taker\b/i);
+});
+
+test('carousel caption varies across pages instead of one fixed caption for every site', () => {
+  const captions = new Set();
+  for (const page of ['/', '/about', '/products/one', '/contact']) {
+    captions.add(generateCarouselCaption({ siteName: 'baba-ganoush', pageUrl: `https://example.com${page}`, slideCount: 4 }));
+  }
+  assert.ok(captions.size > 1, 'expected different pages to draw different hooks/openers/hashtags');
 });
 
 // GitHub Pages project sites are commonly hosted at user.github.io/repo-name/,

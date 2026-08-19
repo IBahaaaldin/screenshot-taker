@@ -77,22 +77,30 @@ const GENERIC_SLUG = /^section-\d+$/;
 // the homepage caption read "a custom en experience".
 const LOCALE_SEGMENT_RE = /^[a-z]{2}(-[a-z0-9]{2,4})?$/i;
 
+// siteName is the OUTPUT FOLDER name — its own field is labelled that way and
+// restricted to "letters, numbers, dots, dashes", nothing about it signals to
+// a user that the same string lands verbatim in every public caption. Typing
+// a folder-safe slug like "acme-dental" produced "Just Delivered: acme-dental,
+// Digitally Served" in every post. Humanized the same way a URL path is.
+function resolveDisplayName(siteName) {
+  return humanize(siteName);
+}
+
+// GitHub Pages project sites are commonly hosted at user.github.io/repo-name/,
+// and siteName naturally gets set to that same repo name — so a page-derived
+// heading and the humanized site name collide constantly, not just as a
+// coincidence. Left alone this reads as "Screenshot Taker's new Screenshot
+// Taker" — the brand name repeated back as if it were the page's own title.
+// Once they match there's nothing worth calling the page by; treat it as the
+// site root instead, same as an empty path already does.
+function resolveHeading(rawHeading, displayName) {
+  return rawHeading.toLowerCase() === displayName.toLowerCase() ? 'home' : rawHeading;
+}
+
 export function generateCaption({ siteName, pageUrl, slug }) {
-  let heading = GENERIC_SLUG.test(slug) ? pageHeading(pageUrl) : humanize(slug);
-  // siteName is the OUTPUT FOLDER name — its own field is labelled that way and
-  // restricted to "letters, numbers, dots, dashes", nothing about it signals to
-  // a user that the same string lands verbatim in every public caption. Typing
-  // a folder-safe slug like "acme-dental" produced "Just Delivered: acme-dental,
-  // Digitally Served" in every post. Humanized the same way a URL path is.
-  const displayName = humanize(siteName);
-  // GitHub Pages project sites are commonly hosted at user.github.io/repo-name/,
-  // and siteName naturally gets set to that same repo name — so the homepage's
-  // page-derived heading and the humanized site name collide constantly, not
-  // just as a coincidence. Left alone this reads as "Screenshot Taker's new
-  // Screenshot Taker" — the brand name repeated back as if it were the page's
-  // own title. Once they match there's nothing worth calling the page by; treat
-  // it as the site root instead, same as an empty path already does.
-  if (heading.toLowerCase() === displayName.toLowerCase()) heading = 'home';
+  const rawHeading = GENERIC_SLUG.test(slug) ? pageHeading(pageUrl) : humanize(slug);
+  const displayName = resolveDisplayName(siteName);
+  const heading = resolveHeading(rawHeading, displayName);
   const seed = hash(`${pageUrl}::${slug}`);
   const pick = (list, offset) => list[(seed + offset) % list.length];
 
@@ -102,6 +110,47 @@ export function generateCaption({ siteName, pageUrl, slug }) {
     pick(OPENERS, 1)(heading, displayName),
     '',
     pick(BODIES, 2),
+    '',
+    '✨ Features include:',
+    ...pick(FEATURE_SETS, 3),
+    '',
+    '💡 Ready to go live and start turning browsers into customers.',
+    '',
+    pick(CLOSERS, 4),
+    '',
+    rotatedHashtags(seed),
+  ].join('\n');
+}
+
+// A carousel posts multiple sections as one Instagram post (swipeable
+// slides), not one caption per section — generateCaption's per-section
+// captions all read as near-duplicates ("...new home...", "...new
+// home...") when the whole page is really one carousel, since every
+// section of a single page collapses to the same page-level heading.
+// This produces one caption for the whole carousel instead. It only knows
+// slideCount (not what's actually inside each slide — caption.js has no
+// access to section content), so it points at "swipe through" rather than
+// inventing per-slide descriptions it can't know are true.
+export function generateCarouselCaption({ siteName, pageUrl, slideCount }) {
+  if (!Number.isInteger(slideCount) || slideCount < 1) {
+    throw new Error('generateCarouselCaption requires a positive integer slideCount');
+  }
+  const rawHeading = pageHeading(pageUrl);
+  const displayName = resolveDisplayName(siteName);
+  const heading = resolveHeading(rawHeading, displayName);
+  const seed = hash(`carousel::${pageUrl}`);
+  const pick = (list, offset) => list[(seed + offset) % list.length];
+  const swipeLine =
+    slideCount === 1 ? '👉 See it in one shot below.' : `👉 Swipe through all ${slideCount} slides.`;
+
+  return [
+    pick(HOOKS, 0)(displayName),
+    '',
+    pick(OPENERS, 1)(heading, displayName),
+    '',
+    pick(BODIES, 2),
+    '',
+    swipeLine,
     '',
     '✨ Features include:',
     ...pick(FEATURE_SETS, 3),

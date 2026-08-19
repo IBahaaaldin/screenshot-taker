@@ -124,6 +124,66 @@ test('Record Video sends whatever URL is currently in the box, not the last load
   assert.equal(sentBody?.url, typedUrl, 'Record should send the URL currently in the box, not the previously loaded one');
 });
 
+// The caption modal used to prefill from a client-side reimplementation of
+// generateCaption that had drifted from the real one (no hook/hashtag
+// variety, no siteName/heading collision guard). It now fetches from
+// /api/caption/draft, the same generateCaption/generateCarouselCaption
+// auto-posting uses — this confirms openCaptionModal actually calls that
+// endpoint with the right kind/slug/slideCount rather than drafting locally.
+test('openCaptionModal drafts from /api/caption/draft with the right params for single and carousel posts', async (t) => {
+  const outputRoot = await fs.mkdtemp(os.tmpdir() + '/caption-draft-wiring-test-');
+  const app = createApp({ outputRoot });
+  const server = app.listen(0);
+  const { port } = server.address();
+  const base = `http://127.0.0.1:${port}`;
+  const fixtureServer = await startLocalServer(fixtureDir);
+
+  const browser = await chromium.launch();
+  t.after(async () => {
+    await browser.close();
+    await new Promise((resolve) => server.close(resolve));
+    await fixtureServer.close();
+    await fs.rm(outputRoot, { recursive: true, force: true });
+  });
+
+  const page = await browser.newPage();
+  await page.goto(`${base}/index.html?url=${encodeURIComponent(`${fixtureServer.url}/index.html`)}`, { waitUntil: 'load' });
+
+  const singleCall = await page.evaluate(async () => {
+    let captured = null;
+    const realFetch = window.fetch;
+    window.fetch = async (url, opts) => {
+      if (String(url).startsWith('/api/caption/draft')) {
+        captured = url;
+        return new Response(JSON.stringify({ caption: 'draft' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }
+      return realFetch(url, opts);
+    };
+    await openCaptionModal({ siteName: 'site', pageUrl: 'https://example.com/', kind: 'single', images: ['a.png'], slugForDraft: 'hero' });
+    return captured;
+  });
+  const singleParams = new URL(singleCall, base).searchParams;
+  assert.equal(singleParams.get('kind'), 'single');
+  assert.equal(singleParams.get('slug'), 'hero');
+
+  const carouselCall = await page.evaluate(async () => {
+    let captured = null;
+    const realFetch = window.fetch;
+    window.fetch = async (url, opts) => {
+      if (String(url).startsWith('/api/caption/draft')) {
+        captured = url;
+        return new Response(JSON.stringify({ caption: 'draft' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }
+      return realFetch(url, opts);
+    };
+    await openCaptionModal({ siteName: 'site', pageUrl: 'https://example.com/', kind: 'carousel', images: ['a.png', 'b.png'], slideCount: 2 });
+    return captured;
+  });
+  const carouselParams = new URL(carouselCall, base).searchParams;
+  assert.equal(carouselParams.get('kind'), 'carousel');
+  assert.equal(carouselParams.get('slideCount'), '2');
+});
+
 // The device frames are content-box, so each bezel's border and its aluminium
 // ring draw OUTSIDE the layout box. The stand and the laptop base are
 // positioned as percentages of the stage, from the layout box — so unless they
