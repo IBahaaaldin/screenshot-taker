@@ -1,4 +1,5 @@
 import * as cheerio from 'cheerio';
+import { HIDE_COOKIE_BANNERS_SCRIPT } from './cookieBanner.js';
 
 // A visible scrollbar inside a device frame is a dead giveaway that it's an
 // iframe, not a screen — and because the frames are CSS-zoomed, the bar renders
@@ -217,6 +218,14 @@ export async function rewritePageHtml(html, baseUrl) {
     $('body').append(SYNC_BRIDGE_SCRIPT);
   } else {
     $.root().append(SYNC_BRIDGE_SCRIPT);
+  }
+
+  // Same banner hiding the capture path applies, so the live preview shows what
+  // the exported screenshots will actually contain.
+  if ($('body').length) {
+    $('body').append(HIDE_COOKIE_BANNERS_SCRIPT);
+  } else {
+    $.root().append(HIDE_COOKIE_BANNERS_SCRIPT);
   }
 
   return $.html();

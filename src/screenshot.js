@@ -4,6 +4,7 @@ import path from 'node:path';
 import sharp from 'sharp';
 import { VIEWPORTS } from './viewports.js';
 import { detectSections } from './sectionDetector.js';
+import { hideCookieBanners } from './cookieBanner.js';
 
 const INITIAL_VIEWPORT_HEIGHT = 1000;
 // A screenshot taken mid-transition (e.g. a hero carousel slide still
@@ -47,6 +48,9 @@ async function planSections(browser, pageUrl, mode, selectors) {
     const loaded = await gotoWithRetry(page, pageUrl);
     if (!loaded) return [];
     await triggerScrollRevealAnimations(page);
+    // Before detection, so a fixed consent banner is never mistaken for a
+    // section of its own.
+    await hideCookieBanners(page);
     return await detectSections(page, mode, selectors);
   } catch (err) {
     console.error(`[screenshot] failed to detect sections for ${pageUrl}: ${err.message}`);
@@ -66,6 +70,7 @@ async function captureOneViewport(browser, pageUrl, viewport, sections, viewport
     }
 
     await triggerScrollRevealAnimations(page);
+    await hideCookieBanners(page);
 
     const written = [];
     try {

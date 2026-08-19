@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+<head>
+<title>Cookie Banner Fixture</title>
+<style>
+  body { margin: 0; }
+  /* A sticky nav that links to a /cookies policy page. This is the trap: it
+     mentions cookies but is NOT a consent banner, and hiding it would be worse
+     than leaving the banner in. */
+  header { position: sticky; top: 0; height: 88px; background: #222; color: #fff; }
+  section { height: 600px; }
+  /* A typical consent banner: fixed to the bottom, mentions cookies, and offers
+     dismiss controls. */
+  #cookie-bar {
+    position: fixed; bottom: 0; left: 0; right: 0; height: 90px;
+    background: #111; color: #fff;
+  }
+  /* A vendor container, matched by name alone. */
+  .cc-window { position: fixed; top: 0; right: 0; width: 300px; height: 200px; background: #333; }
+</style>
+</head>
+<body>
+  <header>
+    <nav>
+      <a href="/products">Products</a>
+      <a href="/about">About</a>
+      <a href="/cookies">Cookies</a>
+      <a href="/privacy">Privacy</a>
+    </nav>
+  </header>
+
+  <section id="hero" style="background:#fee">Hero content</section>
+  <section id="features" style="background:#eef">Features content</section>
+
+  <div id="cookie-bar">
+    <p>We use essential cookies to run the site, and analytics cookies (only after you accept) to understand how it is used.</p>
+    <button type="button">Accept all</button>
+    <button type="button">Only essential</button>
+  </div>
+
+  <div class="cc-window">Vendor consent widget</div>
+</body>
+</html>
