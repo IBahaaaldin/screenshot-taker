@@ -75,13 +75,19 @@ export async function buildCompositesForPage(browser, pageOutputDir, viewportRes
     let compositePath = null;
     let splitCrop = null;
     if (Object.keys(imagesByViewport).length > 0) {
+      // Full composites and split crops are two different deliverables (a
+      // single-image post vs. a two-slide carousel) — keeping them in one
+      // flat folder meant picking images for a carousel required skipping
+      // over every full-size composite mixed in alongside the halves.
       const compositesDir = path.join(pageOutputDir, 'composites');
-      const outputPath = path.join(compositesDir, `${slug}-composite.png`);
+      const fullDir = path.join(compositesDir, 'full');
+      const splitDir = path.join(compositesDir, 'split');
+      const outputPath = path.join(fullDir, `${slug}-composite.png`);
       compositePath = await buildComposite(browser, imagesByViewport, outputPath);
       onProgress({ type: 'composite-done', message: `Composite ready: ${slug}` });
 
       try {
-        splitCrop = await splitLeftRight(compositePath, compositesDir);
+        splitCrop = await splitLeftRight(compositePath, splitDir);
         onProgress({ type: 'split-crop-done', message: `Split crop ready: ${slug}` });
       } catch (err) {
         onProgress({ type: 'split-crop-error', message: `Split crop failed for ${slug}: ${err.message}` });

@@ -102,9 +102,7 @@ function renderHtml(entries, dataUrls, screenBackgrounds = {}) {
     margin: 0;
     width: ${CANVAS_WIDTH}px;
     height: ${CANVAS_HEIGHT}px;
-    background:
-      radial-gradient(ellipse 1200px 600px at 30% 20%, rgba(139, 195, 74, 0.10), transparent 60%),
-      #101114;
+    background: #000000;
     position: relative;
     font-family: -apple-system, sans-serif;
     overflow: hidden;

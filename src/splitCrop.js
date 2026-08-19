@@ -1,3 +1,4 @@
+import fs from 'node:fs/promises';
 import path from 'node:path';
 import sharp from 'sharp';
 
@@ -6,6 +7,7 @@ export async function splitLeftRight(compositeImagePath, outputDir, cutPercent =
   const { width, height } = await sharp(compositeImagePath).metadata();
   const cutX = Math.max(1, Math.min(width - 1, Math.round((width * clamped) / 100)));
 
+  await fs.mkdir(outputDir, { recursive: true });
   const stem = path.basename(compositeImagePath, path.extname(compositeImagePath));
   const leftPath = path.join(outputDir, `${stem}.left.png`);
   const rightPath = path.join(outputDir, `${stem}.right.png`);
