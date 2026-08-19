@@ -176,6 +176,24 @@ nav .wrap {
    to breathe and lets it fall onto one line per its own <br>. */
 .hero .wrap { max-width: 1320px; }
 
+/* Text on the left, the device cluster on the right, both starting at the
+   same top line — the devices were sitting below the copy, needing a
+   scroll before they were visible at all. Above ~900px there's room for
+   both side by side; below it they stack, copy first. */
+.hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 460px);
+  align-items: center;
+  gap: 32px;
+}
+
+.hero-copy { min-width: 0; }
+
+@media (max-width: 900px) {
+  .hero-grid { grid-template-columns: 1fr; }
+  .hero-devices { margin: 48px auto 0; }
+}
+
 .eyebrow {
   display: inline-flex;
   align-items: center;
