@@ -11,7 +11,7 @@ const base = { siteName: 'baba-ganoush', pageUrl: 'https://example.com/index.htm
 test('names the section when the slug is a real selector-derived name', () => {
   const caption = generateCaption({ ...base, slug: 'hero' });
   assert.match(caption, /Hero/);
-  assert.match(caption, /baba-ganoush/);
+  assert.match(caption, /Baba Ganoush/);
 });
 
 test('falls back to the page name when the slug is a generic auto-detect slug', () => {
@@ -98,4 +98,23 @@ test('varies the hashtag set rather than sending the same list every time', () =
     blocks.add(generateCaption({ ...base, slug: `section-${i}` }).split('\n').at(-1));
   }
   assert.ok(blocks.size > 1, 'hashtag block should not be identical on every post');
+});
+
+// The Site name field is labelled "Output folder name" and restricted to
+// letters/numbers/dots/dashes — nothing tells a user that string also becomes
+// the public-facing brand name in every caption. A dashed folder slug used to
+// be pasted straight in: "Just Delivered: acme-dental-clinic, Digitally Served".
+test('humanizes a dashed siteName into a real brand name instead of pasting the folder slug', () => {
+  const caption = generateCaption({
+    siteName: 'acme-dental-clinic',
+    pageUrl: 'https://example.com/',
+    slug: 'section-0',
+  });
+  assert.match(caption, /Acme Dental Clinic/);
+  assert.doesNotMatch(caption, /acme-dental-clinic/);
+});
+
+test('leaves an already-proper-cased siteName alone', () => {
+  const caption = generateCaption({ ...base, siteName: 'EcoClean', slug: 'section-0' });
+  assert.match(caption, /EcoClean/);
 });

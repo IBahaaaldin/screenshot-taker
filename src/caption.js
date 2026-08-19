@@ -79,13 +79,19 @@ const LOCALE_SEGMENT_RE = /^[a-z]{2}(-[a-z0-9]{2,4})?$/i;
 
 export function generateCaption({ siteName, pageUrl, slug }) {
   const heading = GENERIC_SLUG.test(slug) ? pageHeading(pageUrl) : humanize(slug);
+  // siteName is the OUTPUT FOLDER name — its own field is labelled that way and
+  // restricted to "letters, numbers, dots, dashes", nothing about it signals to
+  // a user that the same string lands verbatim in every public caption. Typing
+  // a folder-safe slug like "acme-dental" produced "Just Delivered: acme-dental,
+  // Digitally Served" in every post. Humanized the same way a URL path is.
+  const displayName = humanize(siteName);
   const seed = hash(`${pageUrl}::${slug}`);
   const pick = (list, offset) => list[(seed + offset) % list.length];
 
   return [
-    pick(HOOKS, 0)(siteName),
+    pick(HOOKS, 0)(displayName),
     '',
-    pick(OPENERS, 1)(heading, siteName),
+    pick(OPENERS, 1)(heading, displayName),
     '',
     pick(BODIES, 2),
     '',
