@@ -118,3 +118,21 @@ test('leaves an already-proper-cased siteName alone', () => {
   const caption = generateCaption({ ...base, siteName: 'EcoClean', slug: 'section-0' });
   assert.match(caption, /EcoClean/);
 });
+
+// GitHub Pages project sites are commonly hosted at user.github.io/repo-name/,
+// and siteName naturally gets set to that same repo name — so the page-derived
+// heading and the humanized site name collide, producing "Screenshot Taker's
+// new Screenshot Taker" on the project's own landing page.
+test('does not repeat the brand name back as the page heading when they collide', () => {
+  const caption = generateCaption({
+    siteName: 'screenshot-taker',
+    pageUrl: 'https://ibahaaaldin.github.io/screenshot-taker/',
+    slug: 'section-0',
+  });
+  assert.doesNotMatch(
+    caption,
+    /Screenshot Taker('s new| \(the\)?)? Screenshot Taker\b/i,
+    `caption should not repeat the brand name as its own heading, got:\n${caption}`
+  );
+  assert.match(caption, /\bhome\b/i);
+});

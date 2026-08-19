@@ -78,13 +78,21 @@ const GENERIC_SLUG = /^section-\d+$/;
 const LOCALE_SEGMENT_RE = /^[a-z]{2}(-[a-z0-9]{2,4})?$/i;
 
 export function generateCaption({ siteName, pageUrl, slug }) {
-  const heading = GENERIC_SLUG.test(slug) ? pageHeading(pageUrl) : humanize(slug);
+  let heading = GENERIC_SLUG.test(slug) ? pageHeading(pageUrl) : humanize(slug);
   // siteName is the OUTPUT FOLDER name — its own field is labelled that way and
   // restricted to "letters, numbers, dots, dashes", nothing about it signals to
   // a user that the same string lands verbatim in every public caption. Typing
   // a folder-safe slug like "acme-dental" produced "Just Delivered: acme-dental,
   // Digitally Served" in every post. Humanized the same way a URL path is.
   const displayName = humanize(siteName);
+  // GitHub Pages project sites are commonly hosted at user.github.io/repo-name/,
+  // and siteName naturally gets set to that same repo name — so the homepage's
+  // page-derived heading and the humanized site name collide constantly, not
+  // just as a coincidence. Left alone this reads as "Screenshot Taker's new
+  // Screenshot Taker" — the brand name repeated back as if it were the page's
+  // own title. Once they match there's nothing worth calling the page by; treat
+  // it as the site root instead, same as an empty path already does.
+  if (heading.toLowerCase() === displayName.toLowerCase()) heading = 'home';
   const seed = hash(`${pageUrl}::${slug}`);
   const pick = (list, offset) => list[(seed + offset) % list.length];
 
