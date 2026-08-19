@@ -256,23 +256,19 @@ nav .wrap {
 
 .btn-ghost:hover { border-color: var(--paper-dim); transform: translateY(-1px); }
 
+/* No card/mat here on purpose — the image is composite.js's own real
+   output (a Studio Display, MacBook Pro, iPad Pro and iPhone showing this
+   page itself), which already carries its own dark background, drop
+   shadows and device bezels. Boxing that in another frame doubled up the
+   chrome. */
 .hero-frame {
-  margin-top: 64px;
-  border-radius: 18px;
-  border: 1px solid var(--line);
-  background: var(--charcoal);
-  padding: 10px;
-  box-shadow: 0 40px 90px -30px rgba(0, 0, 0, 0.7);
-  /* The screenshot is sized down from the frame itself (not just the img) so
-     the charcoal frame shows as a visible mat around it, rather than the
-     image filling the frame edge to edge. */
+  margin-top: 56px;
   display: flex;
   justify-content: center;
 }
 
 .hero-frame img {
-  border-radius: 11px;
-  width: 90%;
+  width: 92%;
 }
 
 /* ---------------------------------------------------------------
