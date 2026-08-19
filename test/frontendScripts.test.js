@@ -69,6 +69,61 @@ test('index.html loads preview.js and app.js together with no script errors', as
   assert.equal(globals.appJsLoaded, true, 'app.js should have executed (updateSourceFields defined)');
 });
 
+// The Record button used to send a module-level `currentPreviewUrl` variable
+// that was only updated when the "Load preview" form was submitted. Typing a
+// new URL into the field and clicking Record without submitting first —
+// exactly what a user does — silently recorded whatever site was previously
+// loaded (on first page load, the hardcoded default) instead of the URL
+// actually in the box.
+test('Record Video sends whatever URL is currently in the box, not the last loaded one', async (t) => {
+  const outputRoot = await fs.mkdtemp(os.tmpdir() + '/record-url-test-');
+  const app = createApp({ outputRoot });
+  const server = app.listen(0);
+  const { port } = server.address();
+  const base = `http://127.0.0.1:${port}`;
+  const fixtureServer = await startLocalServer(fixtureDir);
+
+  const browser = await chromium.launch();
+  t.after(async () => {
+    await browser.close();
+    await new Promise((resolve) => server.close(resolve));
+    await fixtureServer.close();
+    await fs.rm(outputRoot, { recursive: true, force: true });
+  });
+
+  const page = await browser.newPage();
+  const loadedUrl = `${fixtureServer.url}/index.html`;
+  const typedUrl = `${fixtureServer.url}/about.html`;
+  await page.goto(`${base}/index.html?url=${encodeURIComponent(loadedUrl)}`, { waitUntil: 'load' });
+
+  // Simulate the exact user action: edit the field, but never click "Load
+  // preview" — so any code path relying on the last-submitted URL sees the
+  // stale one instead of this.
+  await page.fill('#preview-url', typedUrl);
+
+  const sentBody = await page.evaluate(async () => {
+    let captured = null;
+    const realFetch = window.fetch;
+    window.fetch = async (url, opts) => {
+      if (url === '/api/preview/record') {
+        captured = JSON.parse(opts.body);
+        // Avoid actually kicking off a real recording — resolve with a
+        // shape the click handler can consume without throwing.
+        return new Response(JSON.stringify({ downloadUrl: '/output/recordings/fake.mp4', durationMs: 4000 }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      return realFetch(url, opts);
+    };
+    document.getElementById('record-video-btn').click();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    return captured;
+  });
+
+  assert.equal(sentBody?.url, typedUrl, 'Record should send the URL currently in the box, not the previously loaded one');
+});
+
 // The device frames are content-box, so each bezel's border and its aluminium
 // ring draw OUTSIDE the layout box. The stand and the laptop base are
 // positioned as percentages of the stage, from the layout box — so unless they

@@ -22,8 +22,6 @@ const recordVideo = document.getElementById('record-video');
 const recordDownload = document.getElementById('record-download');
 const recordError = document.getElementById('record-error');
 
-let currentPreviewUrl = null;
-
 function proxiedPageUrl(targetUrl) {
   return `/api/preview/page?url=${encodeURIComponent(targetUrl)}`;
 }
@@ -71,7 +69,6 @@ function scaleFramesToFit() {
 }
 
 function loadAll(targetUrl) {
-  currentPreviewUrl = targetUrl;
   for (const key of Object.keys(iframes)) {
     iframes[key].src = proxiedPageUrl(targetUrl);
   }
@@ -140,7 +137,17 @@ form.addEventListener('submit', (e) => {
 });
 
 recordBtn.addEventListener('click', async () => {
-  if (!currentPreviewUrl) return;
+  // Record whatever URL is currently typed in the box, not the last URL
+  // the preview form was submitted with — those diverge whenever someone
+  // edits the field and clicks Record without first clicking "Load
+  // preview", which silently recorded the stale previous site instead of
+  // erroring or picking up the edit.
+  const target = normalizeUrl(urlInput.value.trim());
+  if (!target) {
+    showUrlError('Enter a valid URL, e.g. example.com or https://example.com');
+    return;
+  }
+  clearUrlError();
   recordError.hidden = true;
   recordResult.hidden = true;
   recordBtn.disabled = true;
@@ -152,7 +159,7 @@ recordBtn.addEventListener('click', async () => {
     const res = await fetch('/api/preview/record', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: currentPreviewUrl }),
+      body: JSON.stringify({ url: target }),
     });
     const body = await res.json();
     if (!res.ok) {
