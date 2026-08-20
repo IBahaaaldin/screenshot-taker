@@ -1,5 +1,6 @@
 import * as cheerio from 'cheerio';
 import { HIDE_COOKIE_BANNERS_SCRIPT } from './cookieBanner.js';
+import { PREVIEW_PAGE_READY_SCRIPT } from './pageReady.js';
 
 // A visible scrollbar inside a device frame is a dead giveaway that it's an
 // iframe, not a screen — and because the frames are CSS-zoomed, the bar renders
@@ -226,6 +227,18 @@ export async function rewritePageHtml(html, baseUrl) {
     $('body').append(HIDE_COOKIE_BANNERS_SCRIPT);
   } else {
     $.root().append(HIDE_COOKIE_BANNERS_SCRIPT);
+  }
+
+  // Intro splashes and blocking modals are cleared here too. Without this the
+  // preview spends its first seconds showing the site's logo animation in all
+  // four frames, and a first-visit dialog (geo picker, newsletter) then covers
+  // the site for as long as the preview is open — and for the whole length of
+  // any video recorded from it. Scroll-reveal animations are deliberately left
+  // alone: unlike a screenshot, a preview and a video are meant to show them.
+  if ($('body').length) {
+    $('body').append(PREVIEW_PAGE_READY_SCRIPT);
+  } else {
+    $.root().append(PREVIEW_PAGE_READY_SCRIPT);
   }
 
   return $.html();

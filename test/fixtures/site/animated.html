@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Animated site</title>
+    <style>
+      * { margin: 0; box-sizing: border-box; }
+      body { font-family: system-ui, sans-serif; background: #fff; }
+
+      /* An intro splash that removes itself after a moment, like a site's
+         brand animation. */
+      #splash {
+        position: fixed;
+        inset: 0;
+        z-index: 200;
+        background: #101010;
+        color: #fff;
+        display: grid;
+        place-items: center;
+        font-size: 40px;
+      }
+
+      /* A geo/currency dialog that opens on first visit and blocks everything
+         behind it. */
+      #geo-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        display: grid;
+        place-items: center;
+      }
+      #geo-modal .scrim {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(6px);
+      }
+      #geo-modal .panel {
+        position: relative;
+        background: #fff;
+        padding: 32px;
+        border-radius: 16px;
+        width: 380px;
+      }
+
+      /* A sticky header that follows the scroll and lands on top of whatever
+         section is being captured. */
+      #site-header {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        height: 72px;
+        background: #ffcc00;
+        display: flex;
+        align-items: center;
+        padding: 0 24px;
+      }
+
+      section { padding: 60px 24px; min-height: 420px; }
+      #hero { background: #f4f1ee; position: relative; }
+      /* Deliberately hangs over the bottom edge of its section. */
+      #hero .badge {
+        position: absolute;
+        bottom: -40px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: #c1502e;
+      }
+
+      /* Scroll-reveal: parked at opacity 0 and displaced until .is-visible. */
+      .reveal {
+        opacity: 0;
+        transform: translateY(40px);
+        transition: opacity 800ms ease, transform 800ms ease;
+      }
+      .reveal.is-visible { opacity: 1; transform: none; }
+
+      /* Never revealed by anything — stands in for a reveal whose observer
+         never fires in a headless run. */
+      #stuck { opacity: 0; transform: translateY(40px); }
+
+      /* A hover scrim. Permanently at opacity 0 by design: forcing it on would
+         paint a dark wash over the card. */
+      .card { position: relative; height: 200px; background: #ddd; }
+      .card .hover-scrim {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+        opacity: 0;
+        transition: opacity 300ms ease;
+      }
+      .card:hover .hover-scrim { opacity: 1; }
+    </style>
+  </head>
+  <body>
+    <div id="splash">Brand</div>
+
+    <div id="geo-modal" role="dialog" aria-modal="true">
+      <div class="scrim"></div>
+      <div class="panel">
+        <h2>Where are you shopping from?</h2>
+        <button type="button">Confirm</button>
+        <button type="button">Not now</button>
+      </div>
+    </div>
+
+    <header id="site-header">Sticky header</header>
+
+    <section id="hero">
+      <h1>Hero</h1>
+      <div class="badge"></div>
+    </section>
+
+    <section id="revealed" class="reveal">
+      <h2>Revealed on scroll</h2>
+      <p>This section fades and slides in when it comes into view.</p>
+    </section>
+
+    <section id="stuck">
+      <h2>Never revealed</h2>
+      <p>No observer ever fires for this one.</p>
+    </section>
+
+    <section id="cards">
+      <div class="card"><div class="hover-scrim"></div></div>
+    </section>
+
+    <script>
+      // The splash clears itself, the way a real one does.
+      setTimeout(function () {
+        var splash = document.getElementById('splash');
+        if (splash) splash.remove();
+      }, 700);
+
+      // A scroll lock, installed by the modal.
+      document.body.style.overflow = 'hidden';
+
+      var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) entry.target.classList.add('is-visible');
+        });
+      });
+      document.querySelectorAll('.reveal').forEach(function (el) {
+        observer.observe(el);
+      });
+    </script>
+  </body>
+</html>

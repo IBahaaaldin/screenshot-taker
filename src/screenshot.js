@@ -5,8 +5,13 @@ import sharp from 'sharp';
 import { VIEWPORTS } from './viewports.js';
 import { detectSections } from './sectionDetector.js';
 import { hideCookieBanners } from './cookieBanner.js';
+import { measureSectionBox, prepareForCapture, revealParked } from './pageReady.js';
 
 const INITIAL_VIEWPORT_HEIGHT = 1000;
+// Locator screenshots scroll the section into view themselves, which is the
+// moment a scroll-reveal fires. Animation durations are already zeroed by the
+// settle pass, so this only has to cover the observer callback and one paint.
+const SECTION_SETTLE_MS = 120;
 // A screenshot taken mid-transition (e.g. a hero carousel slide still
 // fading in) often lands as a near-uniform color — very low per-channel
 // stdev. One retry after a short wait catches the common case cheaply.
@@ -47,9 +52,12 @@ async function planSections(browser, pageUrl, mode, selectors) {
     await page.setViewportSize({ width: widest.width, height: INITIAL_VIEWPORT_HEIGHT });
     const loaded = await gotoWithRetry(page, pageUrl);
     if (!loaded) return [];
-    await triggerScrollRevealAnimations(page);
-    // Before detection, so a fixed consent banner is never mistaken for a
-    // section of its own.
+    // Before detection, so a fixed consent banner or a modal is never mistaken
+    // for a section of its own — and so that detection measures the page at the
+    // height it settles at, not the collapsed height it has while every
+    // scroll-reveal is still parked at opacity 0.
+    await hideCookieBanners(page);
+    await prepareForCapture(page);
     await hideCookieBanners(page);
     return await detectSections(page, mode, selectors);
   } catch (err) {
@@ -69,7 +77,14 @@ async function captureOneViewport(browser, pageUrl, viewport, sections, viewport
       return [];
     }
 
-    await triggerScrollRevealAnimations(page);
+    await hideCookieBanners(page);
+    // Sticky/fixed chrome is hidden for section captures only. A section
+    // screenshot is the section's own box, and a sticky header parked on top of
+    // it belongs to neither. A full-page capture is a different deliverable —
+    // there the header is genuinely part of the picture, painted once at the
+    // top, so it stays.
+    const sectionMode = sections.some((section) => section.selector !== null);
+    await prepareForCapture(page, { hideChrome: sectionMode });
     await hideCookieBanners(page);
 
     const written = [];
@@ -77,21 +92,44 @@ async function captureOneViewport(browser, pageUrl, viewport, sections, viewport
       for (const section of sections) {
         const filePath = path.join(viewportDir, `${section.slug}.png`);
         try {
-          const shoot = () =>
-            section.selector === null
-              ? page.screenshot({ path: filePath, fullPage: true })
-              : // Locator screenshots scroll the element into view and capture
-                // its full bounding box in one shot, so they aren't fooled by
-                // viewport-relative CSS (e.g. `min-height: 100vh`) that would
-                // otherwise change as the viewport resizes. A short explicit
-                // timeout keeps a hidden/zero-size selector match (e.g. a
-                // deliberately-targeted modal or accordion panel) a fast,
-                // contained failure instead of waiting out Playwright's ~30s
-                // default actionability timeout per section per viewport.
-                page.locator(section.selector).screenshot({ path: filePath, timeout: 5000 });
+          let clip = null;
+          if (section.selector !== null) {
+            // Scroll it in and let its own reveal fire before photographing it,
+            // rather than letting the locator screenshot scroll and shoot in the
+            // same tick.
+            await scrollSectionIntoView(page, section.selector);
+            await page.waitForTimeout(SECTION_SETTLE_MS);
+            clip = await measureSectionBox(page, section.selector);
+          }
+
+          const shoot = () => {
+            if (section.selector === null) {
+              return page.screenshot({ path: filePath, fullPage: true });
+            }
+            if (clip) {
+              // The section has something hanging over its edge on purpose, so
+              // photograph the grown box instead. `fullPage` here is what makes
+              // the clip document-relative rather than viewport-relative, so it
+              // works for a section further down the page than one screen.
+              return page.screenshot({ path: filePath, fullPage: true, clip });
+            }
+            // Locator screenshots scroll the element into view and capture
+            // its full bounding box in one shot, so they aren't fooled by
+            // viewport-relative CSS (e.g. `min-height: 100vh`) that would
+            // otherwise change as the viewport resizes. A short explicit
+            // timeout keeps a hidden/zero-size selector match (e.g. a
+            // deliberately-targeted modal or accordion panel) a fast,
+            // contained failure instead of waiting out Playwright's ~30s
+            // default actionability timeout per section per viewport.
+            return page.locator(section.selector).screenshot({ path: filePath, timeout: 5000 });
+          };
 
           await shoot();
           if (await isNearSolidColor(filePath)) {
+            // A near-uniform capture usually means a reveal that never fired —
+            // the element is still at opacity 0 over its own background. Force
+            // it before spending the retry.
+            await revealParked(page);
             await page.waitForTimeout(BLANK_RETRY_WAIT_MS);
             await shoot();
           }
@@ -109,23 +147,15 @@ async function captureOneViewport(browser, pageUrl, viewport, sections, viewport
   }
 }
 
-async function triggerScrollRevealAnimations(page) {
+async function scrollSectionIntoView(page, selector) {
   try {
-    await page.evaluate(async () => {
-      const step = Math.max(window.innerHeight, 200);
-      const maxHeight = document.documentElement.scrollHeight;
-      for (let y = 0; y < maxHeight; y += step) {
-        window.scrollTo(0, y);
-        await new Promise((resolve) => setTimeout(resolve, 60));
-      }
-      window.scrollTo(0, maxHeight);
-      await new Promise((resolve) => setTimeout(resolve, 60));
-      window.scrollTo(0, 0);
-    });
-    await page.waitForTimeout(300);
+    await page.evaluate((sel) => {
+      const el = document.querySelector(sel);
+      if (el) el.scrollIntoView({ block: 'center', behavior: 'auto' });
+    }, selector);
   } catch {
-    // Best-effort — if the page can't be scrolled (e.g. it navigated away
-    // mid-evaluate), section detection/screenshot will surface the real error.
+    // Best-effort. If the selector is gone the locator screenshot below
+    // reports it properly.
   }
 }
 

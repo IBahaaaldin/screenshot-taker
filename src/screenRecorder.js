@@ -5,6 +5,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { chromium } from 'playwright';
 import ffmpegPath from 'ffmpeg-static';
+import { FIND_SPLASH_FN } from './pageReady.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -17,7 +18,25 @@ const SETTLE_WAIT_MS = 2500;
 const SCROLL_SPEED_PX_PER_MS = 0.5;
 const MIN_DURATION_MS = 4000;
 const MAX_DURATION_MS = 15000;
-const SCROLL_TICK_MS = 100;
+// Finer ticks at the same speed. At 100ms the page jumped ~50px per frame,
+// which is faster than a scroll-reveal transition can run, so elements popped
+// in fully-formed instead of animating — the site's motion design never made it
+// into the recording. Halving the tick keeps the same pace and duration while
+// giving the reveals frames to play across.
+const SCROLL_TICK_MS = 50;
+// An intro splash covers the site for its first seconds. Recording through it
+// wastes the opening of every video on a logo animation, so the recording waits
+// it out instead. Capped, because a splash that never leaves must not hang the
+// run — the preview page hides it on its own timer in that case.
+const SPLASH_WAIT_MS = 8000;
+const SPLASH_POLL_MS = 250;
+// Playwright starts recording the moment the page exists, so everything before
+// the scroll — four iframes fetching a site through the proxy, then the intro
+// splash playing out — lands at the head of the file as a static shot of four
+// empty devices. On a slow site that was 20 of the video's 33 seconds. The
+// finished video is cut back to just before the scroll starts, keeping this
+// much lead-in so it doesn't open mid-movement.
+const VIDEO_LEAD_IN_MS = 600;
 const FFMPEG_TIMEOUT_MS = 30000;
 
 // electron-builder packs node_modules into app.asar, but child_process
@@ -36,6 +55,23 @@ export function resolveFfmpegPath(rawPath) {
 
 const resolvedFfmpegPath = resolveFfmpegPath(ffmpegPath);
 
+// The proxied page inside each frame clears blocking modals itself (see
+// src/pageReady.js). A splash is left to finish on its own, so the recording
+// polls the desktop frame until it has.
+async function waitForSplashToClear(frame) {
+  const deadline = Date.now() + SPLASH_WAIT_MS;
+  while (Date.now() < deadline) {
+    let splash;
+    try {
+      splash = await frame.evaluate(FIND_SPLASH_FN);
+    } catch {
+      return;
+    }
+    if (!splash) return;
+    await frame.waitForTimeout(SPLASH_POLL_MS);
+  }
+}
+
 export async function recordSitePreview({ url, previewBaseUrl, outputDir }) {
   const videoDir = await fs.mkdtemp(path.join(os.tmpdir(), 'screenshot-taker-video-'));
   const browser = await chromium.launch();
@@ -46,6 +82,7 @@ export async function recordSitePreview({ url, previewBaseUrl, outputDir }) {
     });
     const page = await context.newPage();
     try {
+      const recordingStartedAt = Date.now();
       const previewUrl = `${previewBaseUrl}/index.html?url=${encodeURIComponent(url)}&record=1`;
       await page.goto(previewUrl, { waitUntil: 'load', timeout: 20000 });
       await page.waitForSelector('#preview-stage:not([hidden])', { timeout: 15000 });
@@ -85,6 +122,8 @@ export async function recordSitePreview({ url, previewBaseUrl, outputDir }) {
       const desktopHandle = await page.$('#preview-iframe-desktop');
       const desktopFrame = desktopHandle ? await desktopHandle.contentFrame() : null;
 
+      if (desktopFrame) await waitForSplashToClear(desktopFrame);
+
       let scrollDistance = 0;
       if (desktopFrame) {
         try {
@@ -100,6 +139,8 @@ export async function recordSitePreview({ url, previewBaseUrl, outputDir }) {
         MAX_DURATION_MS,
         Math.max(MIN_DURATION_MS, scrollDistance / SCROLL_SPEED_PX_PER_MS)
       );
+
+      const trimMs = Math.max(0, Date.now() - recordingStartedAt - VIDEO_LEAD_IN_MS);
 
       if (scrollDistance > 0 && desktopHandle) {
         const box = await desktopHandle.boundingBox();
@@ -132,6 +173,9 @@ export async function recordSitePreview({ url, previewBaseUrl, outputDir }) {
         resolvedFfmpegPath,
         [
           '-y',
+          // Before -i so ffmpeg seeks rather than decoding and discarding the
+          // frames it is about to throw away.
+          '-ss', (trimMs / 1000).toFixed(3),
           '-i', webmPath,
           '-c:v', 'libx264',
           '-pix_fmt', 'yuv420p',
