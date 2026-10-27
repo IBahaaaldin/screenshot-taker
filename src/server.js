@@ -31,7 +31,17 @@ export function createApp({
   app.use('/api', createPreviewRouter({ outputRoot, previewBaseUrl }));
   app.use('/api', createCaptionRouter());
   app.use('/output', express.static(outputRoot));
-  app.use(express.static(path.join(__dirname, '..', 'public')));
+  // The app's own UI, served with must-revalidate. express.static already sends
+  // an ETag, but without an explicit Cache-Control the browser is free to reuse
+  // a cached copy for the rest of the session without asking. In the Electron
+  // build that meant a restart could still render the previous version of
+  // preview.js/style.css, so a fixed layout looked unfixed. Revalidating costs
+  // one conditional request against a local server.
+  app.use(
+    express.static(path.join(__dirname, '..', 'public'), {
+      setHeaders: (res) => res.setHeader('Cache-Control', 'no-cache'),
+    })
+  );
 
   return app;
 }

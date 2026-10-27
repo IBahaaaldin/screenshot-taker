@@ -5,7 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { startLocalServer } from '../src/localServer.js';
-import { runPipeline, buildCompositesForPage } from '../src/pipeline.js';
+import { runPipeline, buildCompositesForPage, pageSlugFor } from '../src/pipeline.js';
 import { readManifest } from '../src/manifest.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -245,4 +245,20 @@ test('buildCompositesForPage sets composite and splitCrop to null when a section
   } finally {
     await fs.rm(outputDir, { recursive: true, force: true });
   }
+});
+
+// A crawl commonly turns up both `/products` and `/products?cat=lighting`.
+// They are different pages, and dropping the query folded them onto one output
+// folder, where the second capture silently overwrote the first while the
+// manifest still listed both pointing at the same files.
+test('pageSlugFor keeps pages that differ only by query string apart', () => {
+  assert.equal(pageSlugFor('https://example.com/products'), 'products');
+  assert.notEqual(
+    pageSlugFor('https://example.com/products?cat=lighting'),
+    pageSlugFor('https://example.com/products')
+  );
+  assert.equal(pageSlugFor('https://example.com/products?cat=lighting'), 'products-cat-lighting');
+  assert.equal(pageSlugFor('https://example.com/'), 'index');
+  // No leading or trailing separator left behind by the character squashing.
+  assert.doesNotMatch(pageSlugFor('https://example.com/a/?b=c'), /^-|-$/);
 });

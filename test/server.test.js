@@ -236,3 +236,43 @@ test('a failed run terminates the SSE stream with a terminal event instead of ha
   assert.match(text, /manifest-ready/);
   assert.match(text, /"manifest":null/);
 });
+
+// runPipeline wipes its site folder before it starts, so a second run under the
+// same site name deletes the first one's finished screenshots mid-flight. The
+// first run then dies with ENOENT on a file it had just written itself, which
+// points nowhere near the real cause.
+test('POST /api/run refuses a second run for a site name already in progress', async (t) => {
+  const outputRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'server-test-'));
+  const app = createApp({ outputRoot });
+  const server = app.listen(0);
+  const { port } = server.address();
+  const base = `http://127.0.0.1:${port}`;
+
+  t.after(async () => {
+    await new Promise((resolve) => server.close(resolve));
+    await fs.rm(outputRoot, { recursive: true, force: true });
+  });
+
+  const start = () =>
+    fetch(`${base}/api/run`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ localFolder: fixtureDir, mode: 'auto', siteName: 'SameName' }),
+    });
+
+  const first = await start();
+  assert.equal(first.status, 200);
+
+  const second = await start();
+  assert.equal(second.status, 409);
+  const body = await second.json();
+  assert.match(body.error, /already in progress/i);
+
+  // A different name is unaffected — the guard is per site, not global.
+  const other = await fetch(`${base}/api/run`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ localFolder: fixtureDir, mode: 'auto', siteName: 'DifferentName' }),
+  });
+  assert.equal(other.status, 200);
+});

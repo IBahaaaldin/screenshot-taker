@@ -163,3 +163,61 @@ test('buildComposite fits a wide, short capture to the screen width without crop
     await fs.rm(tmp, { recursive: true, force: true });
   }
 });
+
+// The phone's status bar strip is what the Dynamic Island sits in. It used to
+// reuse the screen's backdrop colour, which is sampled from the BOTTOM edge of
+// the screenshot for a different job — filling in under a section shorter than
+// the screen. On a section that starts blue and ends white that painted a white
+// band across the top of the phone, above blue content, in every exported post.
+test('the phone status bar continues the top of the section, not the bottom', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'composite-statusbar-'));
+  const browser = await chromium.launch();
+  try {
+    const TOP = { r: 56, g: 189, b: 248 };
+    const BOTTOM = { r: 255, g: 255, b: 255 };
+    const halfAndHalf = async (width, height, file) => {
+      const raw = Buffer.alloc(width * height * 3);
+      for (let y = 0; y < height; y++) {
+        const c = y < height / 2 ? TOP : BOTTOM;
+        for (let x = 0; x < width; x++) {
+          const i = (y * width + x) * 3;
+          raw[i] = c.r;
+          raw[i + 1] = c.g;
+          raw[i + 2] = c.b;
+        }
+      }
+      const out = path.join(dir, file);
+      await sharp(raw, { raw: { width, height, channels: 3 } }).png().toFile(out);
+      return out;
+    };
+
+    const images = { mobile: await halfAndHalf(390, 848, 'mobile.png') };
+    const outputPath = path.join(dir, 'composite.png');
+    await buildComposite(browser, images, outputPath);
+
+    // Sample inside the phone's status bar, beside the island.
+    const meta = await sharp(outputPath).metadata();
+    const scale = meta.width / 2000;
+    const pixel = await sharp(outputPath)
+      .extract({
+        left: Math.round((395 + 40) * scale),
+        top: Math.round((578 + 12) * scale),
+        width: 6,
+        height: 6,
+      })
+      .resize(1, 1, { fit: 'fill' })
+      .removeAlpha()
+      .raw()
+      .toBuffer();
+
+    const distanceTo = (c) =>
+      Math.abs(pixel[0] - c.r) + Math.abs(pixel[1] - c.g) + Math.abs(pixel[2] - c.b);
+    assert.ok(
+      distanceTo(TOP) < distanceTo(BOTTOM),
+      `status bar is rgb(${pixel[0]},${pixel[1]},${pixel[2]}), closer to the section's bottom colour than its top`
+    );
+  } finally {
+    await browser.close();
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});

@@ -32,9 +32,23 @@ export function createRunRouter({ outputRoot, runs }) {
       return;
     }
 
+    // A run wipes its site folder before it starts (see runPipeline), so two
+    // runs sharing a site name destroy each other: the second one's delete
+    // takes the first one's finished screenshots out from under it, and the
+    // first then dies part-way through with ENOENT on a file it just wrote.
+    // Nothing about that failure points at the real cause, so refuse it here.
+    for (const [, existing] of runs) {
+      if (existing.status === 'running' && existing.siteName === siteName) {
+        res.status(409).json({
+          error: `A run for site "${siteName}" is already in progress. Wait for it to finish, or use a different site name.`,
+        });
+        return;
+      }
+    }
+
     const runId = crypto.randomUUID();
     const outputDir = path.join(outputRoot, siteName);
-    runs.set(runId, { status: 'running', events: [], manifest: null, outputDir });
+    runs.set(runId, { status: 'running', events: [], manifest: null, outputDir, siteName });
 
     res.json({ runId });
 

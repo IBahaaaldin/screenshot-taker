@@ -178,3 +178,52 @@ test('every viewport captures the same sections even when a block collapses at a
     `all viewports must capture the same section slugs, got ${slugsPerViewport.join(' | ')}`
   );
 });
+
+// The page's own header belongs in the picture of the section at the top of the
+// page — it is what you see when the page loads, and what the live preview
+// shows. Hiding it for every section meant the first slide of an export opened
+// on the hero's blank top padding with no branding, and did not match its own
+// preview. Below that first section the header must still go: a sticky header
+// follows the scroll and would otherwise be painted across every section under
+// it.
+test('the top section is shot with the page header, the ones below it without', async () => {
+  const server = await startLocalServer(fixtureDir);
+  const browser = await chromium.launch();
+  const outputDir = await fs.mkdtemp(path.join(os.tmpdir(), 'header-test-'));
+  try {
+    const result = await captureAllViewports(browser, `${server.url}/animated.html`, {
+      mode: 'auto',
+      outputDir,
+    });
+    const desktop = result.find((r) => r.viewport === 'desktop');
+    assert.ok(desktop.sections.length >= 2, 'the fixture should yield at least two sections');
+
+    // The fixture's sticky header is a solid, unmistakable yellow.
+    const hasHeaderStripe = async (file) => {
+      const image = sharp(file);
+      const { width, height } = await image.metadata();
+      const { data } = await image
+        .extract({ left: 0, top: 0, width, height: Math.min(80, height) })
+        .removeAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+      for (let i = 0; i < data.length; i += 3) {
+        if (data[i] > 220 && data[i + 1] > 180 && data[i + 1] < 225 && data[i + 2] < 60) return true;
+      }
+      return false;
+    };
+
+    assert.ok(
+      await hasHeaderStripe(desktop.sections[0].path),
+      'the top section should be captured with the page header above it'
+    );
+    assert.ok(
+      !(await hasHeaderStripe(desktop.sections[1].path)),
+      'a section below the top must not have the sticky header painted across it'
+    );
+  } finally {
+    await browser.close();
+    await server.close();
+    await fs.rm(outputDir, { recursive: true, force: true });
+  }
+});

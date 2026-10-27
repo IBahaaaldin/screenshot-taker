@@ -479,9 +479,31 @@ export const REVEAL_PARKED_FN = function revealParkedElements() {
 // `visibility` rather than `display`: hiding a sticky header with
 // `display: none` pulls it out of flow, which shifts every section below it and
 // changes the geometry the detected selectors were measured against.
-export const HIDE_PAGE_CHROME_FN = function hidePageChrome() {
+export const HIDE_PAGE_CHROME_FN = function hidePageChrome(keepSelectors) {
   var main = document.querySelector('main') || document.body;
   var hidden = [];
+
+  // The sections about to be captured, so none of them can be hidden as
+  // chrome. Sites do make a section itself `position: sticky` for scroll
+  // effects, and hiding one would export it blank — a worse failure than the
+  // overlap this function exists to prevent.
+  var keep = [];
+  var selectors = keepSelectors || [];
+  for (var s = 0; s < selectors.length; s++) {
+    try {
+      var match = document.querySelector(selectors[s]);
+      if (match) keep.push(match);
+    } catch (err) {
+      /* a selector that no longer resolves simply protects nothing */
+    }
+  }
+  function isProtected(el) {
+    for (var k = 0; k < keep.length; k++) {
+      if (el === keep[k] || el.contains(keep[k]) || keep[k].contains(el)) return true;
+    }
+    return false;
+  }
+
   var all = document.querySelectorAll('body *');
   for (var i = 0; i < all.length; i++) {
     var el = all[i];
@@ -498,6 +520,11 @@ export const HIDE_PAGE_CHROME_FN = function hidePageChrome() {
     var rect = el.getBoundingClientRect();
     if (rect.width < 8 || rect.height < 8) continue;
     if (el !== main && el.contains(main)) continue;
+    // Chrome is small by nature — a nav bar, a floating button, a chat bubble.
+    // Something filling most of the screen is a pinned layout panel, and
+    // blanking it would lose real content.
+    if (rect.height > window.innerHeight * 0.7 && rect.width > window.innerWidth * 0.7) continue;
+    if (isProtected(el)) continue;
 
     el.setAttribute('data-st-chrome-hidden', '1');
     el.style.setProperty('visibility', 'hidden', 'important');
@@ -646,9 +673,9 @@ export async function measureSectionBox(page, selector, { margin = OVERFLOW_MARG
   }
 }
 
-export async function hidePageChrome(page) {
+export async function hidePageChrome(page, { keepSelectors = [] } = {}) {
   try {
-    return await page.evaluate(HIDE_PAGE_CHROME_FN);
+    return await page.evaluate(HIDE_PAGE_CHROME_FN, keepSelectors);
   } catch (err) {
     console.error(`[pageReady] could not hide page chrome: ${err.message}`);
     return [];
@@ -659,7 +686,7 @@ export async function hidePageChrome(page) {
 // makes each step cheap for the next: let the splash finish (it covers the
 // content the modal check needs to see), clear the modal (its scroll lock would
 // stop the settle pass scrolling), then settle.
-export async function prepareForCapture(page, { hideChrome = false } = {}) {
+export async function prepareForCapture(page, { hideChrome = false, keepSelectors = [] } = {}) {
   await waitForSplash(page);
   await dismissModals(page);
   const settled = await settleAnimations(page);
@@ -667,9 +694,94 @@ export async function prepareForCapture(page, { hideChrome = false } = {}) {
   // which is long enough to arrive during the settle pass rather than before
   // it. One more sweep costs a few milliseconds.
   await dismissModals(page);
-  if (hideChrome) await hidePageChrome(page);
+  if (hideChrome) await hidePageChrome(page, { keepSelectors });
   return settled;
 }
+
+// How long an element may sit in the viewport still parked in its scroll-reveal
+// start state before the preview stops waiting and shows it. A reveal that is
+// actually going to run has started well inside this window — the transitions
+// themselves are typically 300-800ms — so real motion is never cut short.
+const PARKED_IN_VIEW_GRACE_MS = 1400;
+// Above this, an element is faint on purpose rather than waiting to appear.
+const PARKED_OPACITY_MAX = 0.05;
+
+// The rescue the live preview and the recorded video need.
+//
+// The capture path force-settles everything, but a preview keeps its animations
+// because the motion is the point. That only works while the site's own
+// IntersectionObserver actually fires. Proxied through the app it does not
+// always: measured against designerspuzzle.com, scrolling the real site to 75%
+// left 7 elements parked at `opacity: 0`, and the same scroll through the proxy
+// left 17 — enough that the largest device frame showed a bare header over
+// white for the last third of every recording.
+//
+// So this watches only what is on screen, and only rescues an element that has
+// been both visible and parked for longer than any real reveal takes. An
+// element mid-transition is left alone; one the observer forgot is shown.
+export const RESCUE_PARKED_IN_VIEW_FN = function rescueParkedInView() {
+  if (!window.__stParkedSince) window.__stParkedSince = new WeakMap();
+  var seen = window.__stParkedSince;
+  var now = Date.now();
+  var rescued = 0;
+
+  var all = document.querySelectorAll('body *');
+  for (var i = 0; i < all.length; i++) {
+    var el = all[i];
+    var cs;
+    try {
+      cs = getComputedStyle(el);
+    } catch (err) {
+      continue;
+    }
+    if (cs.display === 'none' || cs.visibility === 'hidden') continue;
+
+    var rect = el.getBoundingClientRect();
+    var onScreen = rect.bottom > 0 && rect.top < window.innerHeight && rect.height >= 40;
+    if (!onScreen) {
+      seen.delete(el);
+      continue;
+    }
+
+    var opacity = parseFloat(cs.opacity);
+    var transform = cs.transform;
+    var moved = transform && transform !== 'none' && !/^matrix\(1, 0, 0, 1, 0, 0\)$/.test(transform);
+
+    // A looping keyframe animation is the site working as intended, not a
+    // reveal that stalled. Decorative blurred blobs drift on a permanent
+    // animation while sitting at a deliberately faint opacity — forcing those
+    // to 1 lit two of them up like spotlights in the preview, colours the
+    // exported screenshots (correctly) never had.
+    if (cs.animationName && cs.animationName !== 'none') {
+      seen.delete(el);
+      continue;
+    }
+
+    // Opacity alone is not the test, and "less than fully opaque" is too loose.
+    // A hover scrim sits at opacity 0 by design and forcing it on paints a dark
+    // wash over every card; a decorative layer sits at 0.08 by design and is
+    // meant to stay there. A reveal that has not fired is at (or within a
+    // rounding error of) zero AND displaced — the pairing is what identifies
+    // it.
+    if (!(opacity < 0.05 && moved)) {
+      seen.delete(el);
+      continue;
+    }
+
+    var since = seen.get(el);
+    if (since === undefined) {
+      seen.set(el, now);
+      continue;
+    }
+    if (now - since < 1400) continue;
+
+    el.style.setProperty('opacity', '1', 'important');
+    el.style.setProperty('transform', 'none', 'important');
+    seen.delete(el);
+    rescued++;
+  }
+  return rescued;
+};
 
 // The preview and the recorded video keep their animations: the motion is what
 // they exist to show. They still need the splash out of the way (it hides the
@@ -680,6 +792,7 @@ export const PREVIEW_PAGE_READY_SCRIPT = `<script>
   var findSplash = ${FIND_SPLASH_FN.toString()};
   var hideSplash = ${HIDE_SPLASH_FN.toString()};
   var dismissModals = ${DISMISS_MODALS_FN.toString()};
+  var rescueParked = ${RESCUE_PARKED_IN_VIEW_FN.toString()};
 
   function sweep() {
     try { dismissModals(); } catch (err) {}
@@ -701,5 +814,11 @@ export const PREVIEW_PAGE_READY_SCRIPT = `<script>
     }
     if (++ticks > 80) clearInterval(timer);
   }, 250);
+
+  // Runs for the life of the page, not just the opening seconds: a reveal can
+  // stall anywhere the scroll reaches, including well into a recording.
+  setInterval(function () {
+    try { rescueParked(); } catch (err) {}
+  }, 400);
 })();
 </script>`;

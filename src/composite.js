@@ -40,13 +40,15 @@ export async function buildComposite(browser, imagesByViewport, outputPath) {
 
   const dataUrls = {};
   const screenBackgrounds = {};
+  const statusBarBackgrounds = {};
   for (const name of entries) {
     const buffer = await fs.readFile(imagesByViewport[name]);
     dataUrls[name] = `data:image/png;base64,${buffer.toString('base64')}`;
     screenBackgrounds[name] = await bottomEdgeColor(imagesByViewport[name]);
+    statusBarBackgrounds[name] = await topEdgeColor(imagesByViewport[name]);
   }
 
-  const html = renderHtml(entries, dataUrls, screenBackgrounds);
+  const html = renderHtml(entries, dataUrls, screenBackgrounds, statusBarBackgrounds);
 
   const page = await browser.newPage({ viewport: { width: CANVAS_WIDTH, height: CANVAS_HEIGHT } });
   try {
@@ -60,6 +62,15 @@ export async function buildComposite(browser, imagesByViewport, outputPath) {
   return outputPath;
 }
 
+// Average colour of the top sliver of a screenshot, used behind the phone's
+// Dynamic Island. The strip used to reuse the bottom-edge colour, which is
+// sampled from the other end of the image for a different purpose: on a
+// section that starts blue and ends white it painted a white band across the
+// top of the phone, above blue content, in every exported post.
+async function topEdgeColor(file) {
+  return edgeColor(file, 'top');
+}
+
 // Average colour of the bottom sliver of a screenshot, used as the screen's
 // backdrop. A section shorter than the device's viewport can't fill the
 // screen (it's an element screenshot, so its height is whatever the section
@@ -67,13 +78,18 @@ export async function buildComposite(browser, imagesByViewport, outputPath) {
 // continuing the page's own background colour instead makes it read as a
 // short page, which is what it is.
 async function bottomEdgeColor(file) {
+  return edgeColor(file, 'bottom');
+}
+
+async function edgeColor(file, edge) {
   try {
     const image = sharp(file);
     const { width, height } = await image.metadata();
     if (!width || !height) return '#050505';
     const stripHeight = Math.max(1, Math.round(height * 0.02));
+    const top = edge === 'top' ? 0 : height - stripHeight;
     const { data } = await image
-      .extract({ left: 0, top: height - stripHeight, width, height: stripHeight })
+      .extract({ left: 0, top, width, height: stripHeight })
       .resize(1, 1, { fit: 'fill' })
       .removeAlpha()
       .raw()
@@ -85,12 +101,12 @@ async function bottomEdgeColor(file) {
   }
 }
 
-function renderHtml(entries, dataUrls, screenBackgrounds = {}) {
+function renderHtml(entries, dataUrls, screenBackgrounds = {}, statusBarBackgrounds = {}) {
   // Draw back-to-front so nearer devices overlap farther ones correctly,
   // regardless of the order sections were detected in.
   const ordered = [...entries].sort((a, b) => LAYOUT[a].z - LAYOUT[b].z);
   const frames = ordered
-    .map((name) => frameHtml(name, dataUrls[name], screenBackgrounds[name]))
+    .map((name) => frameHtml(name, dataUrls[name], screenBackgrounds[name], statusBarBackgrounds[name]))
     .join('\n');
 
   return `<!doctype html>
@@ -251,6 +267,21 @@ function renderHtml(entries, dataUrls, screenBackgrounds = {}) {
       0 0.05em 0.09em -0.025em rgba(0, 0, 0, 0.5);
   }
   .mobile-bezel .screen { border-radius: 0.137em; height: 100%; position: relative; }
+  /* The status bar the Dynamic Island sits in. A phone browser insets the page
+     below it, so on a real device the island never lands on the page's own
+     content — drawing it over a screenshot that started at the top of the glass
+     put a black pill through the middle of the section. 59pt of status bar on a
+     402pt-wide screen is 0.1468em.
+     The strip is painted with the colour sampled from the TOP of this
+     screenshot, so it continues the content it sits above. It used to show
+     .screen's backdrop, which is sampled from the BOTTOM edge for a different
+     job (filling in under a short section) — on a section running blue to
+     white that put a white band across the top of the phone in every post. */
+  .mobile-bezel .screen { padding-top: 0.1468em; }
+  .mobile-statusbar {
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 0.1468em; z-index: 1;
+  }
   .mobile-island {
     position: absolute; top: 0.028em; left: 50%; transform: translateX(-50%);
     width: 0.311em; height: 0.0896em; border-radius: 999px;
@@ -269,7 +300,7 @@ function renderHtml(entries, dataUrls, screenBackgrounds = {}) {
 </html>`;
 }
 
-function frameHtml(name, dataUrl, screenBackground) {
+function frameHtml(name, dataUrl, screenBackground, statusBarBackground) {
   const { x, y, w, h, z } = LAYOUT[name];
   // font-size == the device's own width, so every `em` in the bezel CSS is a
   // fraction of this device (see the style block's opening comment).
@@ -303,10 +334,14 @@ function frameHtml(name, dataUrl, screenBackground) {
   }
 
   // mobile
+  const statusBarStyle = statusBarBackground ? ` style="background:${statusBarBackground}"` : '';
   return `<div class="device" style="${style}">
     <div class="mobile-bezel">
+      <div class="screen"${screenStyle}>
+        <div class="mobile-statusbar"${statusBarStyle}></div>
+        <img src="${dataUrl}" />
+      </div>
       <div class="mobile-island"></div>
-      <div class="screen"${screenStyle}><img src="${dataUrl}" /></div>
       <div class="mobile-home"></div>
     </div>
   </div>`;

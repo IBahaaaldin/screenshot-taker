@@ -239,3 +239,70 @@ test('the desktop stand and laptop base meet their devices flush, not overlappin
     assert.ok(gap <= 2.5, `${name} leaves a visible ${gap.toFixed(2)}px seam`);
   }
 });
+
+// A phone browser insets a page's CONTENT below the status bar, which is why a
+// real Dynamic Island never lands on a site's own header. Two things went wrong
+// here in turn: the preview first drew the island over a page that started at
+// the top of the glass, putting a black pill through the logo of every site
+// previewed; the fix for that reserved the strip by shrinking the iframe, which
+// exposed the frame's own background above the page as a white band no real
+// phone has. The inset belongs inside the page, where the site's own background
+// paints it.
+test('the phone insets the page inside itself, leaving no band above the site', async (t) => {
+  const outputRoot = await fs.mkdtemp(os.tmpdir() + '/status-bar-test-');
+  const app = createApp({ outputRoot });
+  const server = app.listen(0);
+  const { port } = server.address();
+  const fixtureServer = await startLocalServer(fixtureDir);
+
+  const browser = await chromium.launch();
+  t.after(async () => {
+    await browser.close();
+    await new Promise((resolve) => server.close(resolve));
+    await fixtureServer.close();
+    await fs.rm(outputRoot, { recursive: true, force: true });
+  });
+
+  const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } });
+  await page.goto(
+    `http://127.0.0.1:${port}/index.html?url=${encodeURIComponent(`${fixtureServer.url}/index.html`)}`,
+    { waitUntil: 'load' }
+  );
+  await page.waitForSelector('#preview-stage:not([hidden])', { timeout: 15000 });
+  await page.waitForTimeout(2000);
+
+  const layout = await page.evaluate(() => {
+    const rect = (sel) => document.querySelector(sel).getBoundingClientRect();
+    const frameEl = document.querySelector('.preview-frame-mobile');
+    const mobileFrame = rect('.preview-frame-mobile');
+    const mobilePage = rect('#preview-iframe-mobile');
+    return {
+      // Measured from the screen, not the frame's outer box: the frame's border
+      // is the phone's bezel, which is meant to be there. What must not be
+      // there is any of the frame's own background between bezel and page —
+      // that is the white band. clientTop is exactly that border width.
+      gapAbovePage: mobilePage.top - (mobileFrame.top + frameEl.clientTop),
+      // Every device asks the proxy to inset only what its own status bar needs.
+      mobileSrc: document.querySelector('#preview-iframe-mobile').src,
+      desktopSrc: document.querySelector('#preview-iframe-desktop').src,
+      // Nothing is inset from out here any more.
+      mobileMargin: document.querySelector('#preview-iframe-mobile').style.marginTop || '',
+    };
+  });
+
+  assert.ok(
+    layout.gapAbovePage <= 1,
+    `the frame shows a ${layout.gapAbovePage.toFixed(2)}px band above the page`
+  );
+  assert.equal(layout.mobileMargin, '', 'the phone must not be inset by shrinking its iframe');
+  assert.match(layout.mobileSrc, /safeTop=59/, 'the phone should ask the proxy for its status bar');
+  assert.doesNotMatch(layout.desktopSrc, /safeTop/, 'a device with no status bar asks for none');
+
+  // The inset itself lands inside the page, and the island clears the content.
+  const frame = page.frame({ url: (u) => u.href.includes('safeTop=59') });
+  assert.ok(frame, 'the phone frame should be loaded through the proxy');
+  const inPage = await frame.evaluate(() => ({
+    bodyPadTop: getComputedStyle(document.body).paddingTop,
+  }));
+  assert.equal(inPage.bodyPadTop, '59px', "the page should inset its own content by the status bar");
+});

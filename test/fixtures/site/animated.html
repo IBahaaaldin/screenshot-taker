@@ -82,6 +82,26 @@
          never fires in a headless run. */
       #stuck { opacity: 0; transform: translateY(40px); }
 
+      /* A decorative blob: permanently faint and permanently drifting, both by
+         design. Forcing it to full opacity lights it up like a spotlight in a
+         colour the real site never shows. */
+      .orb {
+        position: absolute;
+        top: 40px;
+        left: 40px;
+        width: 240px;
+        height: 240px;
+        border-radius: 50%;
+        background: radial-gradient(circle, #38bdf8, transparent 70%);
+        opacity: 0.08;
+        filter: blur(40px);
+        animation: orb-drift 12s ease-in-out infinite alternate;
+      }
+      @keyframes orb-drift {
+        from { transform: translate(0, 0); }
+        to { transform: translate(30px, 20px); }
+      }
+
       /* A hover scrim. Permanently at opacity 0 by design: forcing it on would
          paint a dark wash over the card. */
       .card { position: relative; height: 200px; background: #ddd; }
@@ -110,6 +130,7 @@
     <header id="site-header">Sticky header</header>
 
     <section id="hero">
+      <div class="orb"></div>
       <h1>Hero</h1>
       <div class="badge"></div>
     </section>
@@ -133,7 +154,7 @@
       setTimeout(function () {
         var splash = document.getElementById('splash');
         if (splash) splash.remove();
-      }, 700);
+      }, 2000);
 
       // A scroll lock, installed by the modal.
       document.body.style.overflow = 'hidden';

@@ -26,11 +26,12 @@ export async function runPipeline(
   try {
     onProgress({ type: 'crawl-start', message: `Crawling ${startUrl}` });
     const pageUrls = await crawlSite(startUrl, { maxPages });
+    const takenSlugs = new Set();
 
     for (const pageUrl of pageUrls) {
       onProgress({ type: 'page-start', message: `Processing ${pageUrl}` });
 
-      const pageSlug = pageSlugFor(pageUrl);
+      const pageSlug = uniqueSlug(pageSlugFor(pageUrl), takenSlugs);
       const pageOutputDir = path.join(siteOutputDir, pageSlug);
 
       try {
@@ -100,8 +101,28 @@ export async function buildCompositesForPage(browser, pageOutputDir, viewportRes
   return sections;
 }
 
-function pageSlugFor(pageUrl) {
-  const { pathname } = new URL(pageUrl);
-  const base = pathname.replace(/^\/+|\/+$/g, '') || 'index';
-  return base.replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase() || 'index';
+// The query string is part of the slug, not dropped from it. A crawl commonly
+// picks up both `/products` and `/products?cat=lighting` — genuinely different
+// pages — and folding them onto one folder name meant the second capture
+// overwrote the first, while the manifest still listed both pointing at the
+// same files.
+export function pageSlugFor(pageUrl) {
+  const { pathname, search } = new URL(pageUrl);
+  const base = `${pathname}${search}`.replace(/^\/+|\/+$/g, '') || 'index';
+  return base.replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'index';
+}
+
+// Two different URLs can still normalise to the same slug (every character
+// that isn't a letter or digit collapses to a hyphen). Suffix the later ones
+// rather than let them share a folder.
+function uniqueSlug(slug, taken) {
+  if (!taken.has(slug)) {
+    taken.add(slug);
+    return slug;
+  }
+  let n = 2;
+  while (taken.has(`${slug}-${n}`)) n += 1;
+  const unique = `${slug}-${n}`;
+  taken.add(unique);
+  return unique;
 }

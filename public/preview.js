@@ -1,8 +1,14 @@
+// safeTop is the device's status bar, in that device's own pixels. It is passed
+// to the proxied page, which insets its own content by that much — so the
+// site's header stops below the Dynamic Island instead of being drawn through
+// its logo, while the page's background still runs up behind the island the way
+// it does on a real phone. 59px is the iPhone 16 Pro's status bar. The other
+// three devices have no equivalent.
 const DEVICES = {
   desktop: { width: 1920 },
   laptop: { width: 1440 },
   tablet: { width: 768 },
-  mobile: { width: 390 },
+  mobile: { width: 390, safeTop: 59 },
 };
 
 const form = document.getElementById('preview-form');
@@ -22,8 +28,13 @@ const recordVideo = document.getElementById('record-video');
 const recordDownload = document.getElementById('record-download');
 const recordError = document.getElementById('record-error');
 
-function proxiedPageUrl(targetUrl) {
-  return `/api/preview/page?url=${encodeURIComponent(targetUrl)}`;
+// safeTop rides along in the proxied page's own URL so the page can inset
+// itself (see SAFE_AREA_SCRIPT in src/previewProxy.js). Reserving the strip out
+// here instead left the frame's background showing above the site — a white
+// band across the top of the phone that no real device has.
+function proxiedPageUrl(targetUrl, safeTop = 0) {
+  const base = `/api/preview/page?url=${encodeURIComponent(targetUrl)}`;
+  return safeTop ? `${base}&safeTop=${safeTop}` : base;
 }
 
 function normalizeUrl(value) {
@@ -64,13 +75,18 @@ function scaleFramesToFit() {
     // ResizeObserver below to fire with a real size.
     if (!Number.isFinite(scale) || scale <= 0) continue;
     iframe.style.zoom = scale;
+
+    // The iframe fills the whole screen, right up to the top edge. The status
+    // bar is inset inside the page instead, so the site's own background —
+    // gradient, dark theme, whatever it is — paints behind the Dynamic Island
+    // the way it does on a real phone.
     iframe.style.height = `${frame.clientHeight / scale}px`;
   }
 }
 
 function loadAll(targetUrl) {
   for (const key of Object.keys(iframes)) {
-    iframes[key].src = proxiedPageUrl(targetUrl);
+    iframes[key].src = proxiedPageUrl(targetUrl, DEVICES[key].safeTop || 0);
   }
   stage.hidden = false;
   recordBtn.disabled = false;

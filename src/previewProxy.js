@@ -124,6 +124,7 @@ const SYNC_BRIDGE_SCRIPT = `<script>
     parent.postMessage({ type: 'preview-nav', url: navUrl }, '*');
   }, true);
 
+
   // No scroll sync: each device frame scrolls on its own, so you can park
   // the phone on one section while inspecting another on the desktop. Link
   // clicks still propagate (above) so all four stay on the same page.
@@ -134,6 +135,148 @@ const SYNC_BRIDGE_SCRIPT = `<script>
   // to the same content everywhere — and keeping four CSS-zoomed documents
   // in lockstep meant every frame echoed every other one's corrections,
   // which made scrolling feel like it was fighting back.
+})();
+</script>`;
+
+// The phone frame's status bar, applied inside the page rather than around it.
+//
+// A device frame previously reserved the strip by insetting the iframe, which
+// left the frame's own background showing above the page — a white band across
+// the top of the phone that no real device has. On a real iPhone the page's
+// background runs right up behind the status bar and only the *content* is
+// inset. So the inset is done here, in the page's own layout, where the site's
+// own background (gradient, dark theme, whatever it is) paints it for free.
+//
+// The size arrives in the proxied page's own URL, so the same rewritten HTML
+// serves every device and stays cacheable — only the phone iframe asks for a
+// safe area, and the script reads it from its own location at runtime.
+const SAFE_AREA_SCRIPT = `<script>
+(function () {
+  var safeTop = 0;
+  try {
+    safeTop = parseFloat(new URLSearchParams(location.search).get('safeTop')) || 0;
+  } catch (err) {
+    safeTop = 0;
+  }
+  if (!safeTop) return;
+
+  var style = document.createElement('style');
+  style.id = '__st-safe-area';
+  style.textContent =
+    ':root{--st-safe-top:' + safeTop + 'px}' +
+    'body{padding-top:' + safeTop + 'px !important}';
+  function install() {
+    var head = document.head || document.documentElement;
+    if (head && !document.getElementById('__st-safe-area')) head.appendChild(style);
+  }
+  install();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', install);
+  }
+
+  // Padding the body insets the content, but it does not move the thing that
+  // paints the top of the page. A site whose top is a full-bleed hero gradient
+  // paints that gradient from a child element, so padding pushed the gradient
+  // down too and the reserved strip showed plain <body> underneath — the same
+  // white band, now just inside the page instead of around it.
+  //
+  // So find whatever actually paints under the top edge and stretch just that
+  // element upward: pull it up by the inset and give it the inset back as
+  // padding. Its content stays exactly where the body padding put it, its
+  // total height is unchanged so nothing below it moves, and its background —
+  // gradient and all — now runs up behind the Dynamic Island the way it does
+  // on a real phone.
+  function paintsBackground(cs) {
+    if (cs.backgroundImage && cs.backgroundImage !== 'none') return true;
+    var color = cs.backgroundColor;
+    if (!color || color === 'transparent') return false;
+    var open = color.indexOf('(');
+    var close = color.indexOf(')');
+    if (open === -1 || close === -1) return true;
+    var parts = color.slice(open + 1, close).split(',');
+    return parts.length < 4 || parseFloat(parts[3]) > 0.5;
+  }
+
+  function extendTopBackground() {
+    if (document.querySelector('[data-st-safe-extended]')) return;
+
+    // Scanned rather than hit-tested. document.elementFromPoint returns the
+    // topmost *hit-testable* element, which at this spot is the site's fixed
+    // <nav> — transparent, and whose ancestors are <body> and <html>, so the
+    // walk never reached the hero section actually painting the gradient two
+    // subtrees away. Decorative layers are commonly pointer-events:none too,
+    // which hit testing skips entirely.
+    var all = document.querySelectorAll('body *');
+    for (var i = 0; i < all.length; i++) {
+      var el = all[i];
+      var cs;
+      try {
+        cs = getComputedStyle(el);
+      } catch (err) {
+        continue;
+      }
+      if (cs.display === 'none' || cs.visibility === 'hidden') continue;
+      // In flow only: stretching a pinned or absolutely-placed layer moves it
+      // relative to everything else instead of extending the page's own top.
+      if (cs.position !== 'static' && cs.position !== 'relative') continue;
+      if (!paintsBackground(cs)) continue;
+
+      var rect = el.getBoundingClientRect();
+      if (rect.width < window.innerWidth * 0.9) continue;
+      // Must be the layer sitting at the top of the inset content. Anything
+      // further down would be dragged up over the header.
+      if (Math.abs(rect.top - safeTop) > 2) continue;
+
+      el.setAttribute('data-st-safe-extended', '1');
+      // Pull the box up by the inset and give the inset back as padding: the
+      // background now starts at the true top edge while the content it holds
+      // does not move, and the box's total height is unchanged so nothing
+      // below it shifts.
+      el.style.setProperty('margin-top', '-' + safeTop + 'px', 'important');
+      el.style.setProperty('padding-top', safeTop + 'px', 'important');
+      return;
+    }
+  }
+
+  // Anything pinned to the top of the viewport ignores the body padding and
+  // would sit back under the Dynamic Island — which is exactly what a site's
+  // sticky header does. Push those down by the same amount, so a header stops
+  // below the island and the page still scrolls behind it.
+  function offsetPinned() {
+    var all = document.querySelectorAll('body *');
+    for (var i = 0; i < all.length; i++) {
+      var el = all[i];
+      if (el.getAttribute('data-st-safe-offset')) continue;
+      var cs;
+      try {
+        cs = getComputedStyle(el);
+      } catch (err) {
+        continue;
+      }
+      if (cs.position !== 'fixed' && cs.position !== 'sticky') continue;
+      if (cs.top !== '0px') continue;
+      var rect = el.getBoundingClientRect();
+      // A full-screen pinned layer is a modal or a backdrop, not a header;
+      // nudging it down would leave a gap along the top of the overlay.
+      if (rect.height > window.innerHeight * 0.7) continue;
+      el.setAttribute('data-st-safe-offset', '1');
+      el.style.setProperty('top', safeTop + 'px', 'important');
+    }
+  }
+
+  function apply() {
+    try { offsetPinned(); } catch (err) {}
+    try { extendTopBackground(); } catch (err) {}
+  }
+
+  apply();
+  // Headers and heroes commonly mount after hydration, so keep looking for a
+  // while rather than only once.
+  var ticks = 0;
+  var timer = setInterval(function () {
+    apply();
+    if (++ticks > 40) clearInterval(timer);
+  }, 250);
 })();
 </script>`;
 
@@ -213,6 +356,14 @@ export async function rewritePageHtml(html, baseUrl) {
     $('body').append(HIDE_SCROLLBAR_STYLE);
   } else {
     $.root().append(HIDE_SCROLLBAR_STYLE);
+  }
+
+  if ($('head').length) {
+    $('head').append(SAFE_AREA_SCRIPT);
+  } else if ($('body').length) {
+    $('body').prepend(SAFE_AREA_SCRIPT);
+  } else {
+    $.root().prepend(SAFE_AREA_SCRIPT);
   }
 
   if ($('body').length) {

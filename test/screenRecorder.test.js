@@ -134,3 +134,55 @@ test('resolveFfmpegPath rewrites an app.asar path segment to app.asar.unpacked',
   const unpackaged = '/Users/dev/screenshot-taker/node_modules/ffmpeg-static/ffmpeg';
   assert.equal(resolveFfmpegPath(unpackaged), unpackaged, 'leaves non-asar paths untouched');
 });
+
+// The device frames are CSS-zoomed to fit the stage, so a wheel delta (stage
+// pixels) and a scroll distance (the frame's own document pixels) are not the
+// same unit. Feeding one into the other scrolled the desktop frame by
+// distance/zoom — roughly 3x too far — so it reached the footer a third of the
+// way through the video and raced past every scroll-reveal on the way.
+test('a wheel delta scrolls a zoomed device frame by the distance it was asked for', async (t) => {
+  const fixtureServer = await startLocalServer(fixtureDir);
+  const outputRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'screenshot-taker-test-'));
+
+  const app = express();
+  app.use('/api', createPreviewRouter({ outputRoot }));
+  app.use(express.static(path.join(__dirname, '..', 'public')));
+  const server = app.listen(0);
+  await new Promise((resolve) => server.once('listening', resolve));
+  const previewBaseUrl = `http://127.0.0.1:${server.address().port}`;
+
+  const browser = await chromium.launch();
+  t.after(async () => {
+    await browser.close();
+    await fixtureServer.close();
+    await new Promise((resolve) => server.close(resolve));
+    await fs.rm(outputRoot, { recursive: true, force: true });
+  });
+
+  const page = await browser.newPage({ viewport: STAGE_VIEWPORT });
+  const previewUrl = `${previewBaseUrl}/index.html?url=${encodeURIComponent(`${fixtureServer.url}/tall.html`)}&record=1`;
+  await page.goto(previewUrl, { waitUntil: 'load', timeout: 20000 });
+  await page.waitForSelector('#preview-stage:not([hidden])', { timeout: 15000 });
+
+  const handle = await page.$('#preview-iframe-desktop');
+  const frame = await handle.contentFrame();
+  const zoom = await page.evaluate(
+    () => parseFloat(document.querySelector('#preview-iframe-desktop').style.zoom)
+  );
+  assert.ok(zoom > 0 && zoom < 1, `the desktop frame should be zoomed down, got ${zoom}`);
+
+  const box = await handle.boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+
+  // The conversion recordSitePreview applies before sending a wheel event.
+  const wanted = 400;
+  const before = await frame.evaluate(() => window.scrollY);
+  await page.mouse.wheel(0, wanted * zoom);
+  await page.waitForTimeout(500);
+  const scrolled = (await frame.evaluate(() => window.scrollY)) - before;
+
+  assert.ok(
+    Math.abs(scrolled - wanted) < wanted * 0.15,
+    `asked for ${wanted}px of document scroll, got ${Math.round(scrolled)}px`
+  );
+});

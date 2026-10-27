@@ -840,6 +840,17 @@ body.recording-mode .preview-stage {
   width: 1400px;
 }
 
+/* The recorder scrolls the desktop device frame by sending wheel events at it.
+   Once that iframe reaches its own scroll end the browser chains the remaining
+   scroll to this page, which panned the whole stage up mid-video and brought
+   the site footer into shot. Nothing outside the stage is meant to be visible
+   in a recording, so this page simply does not scroll. */
+body.recording-mode,
+html:has(body.recording-mode) {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 .record-result {
   margin-top: 1.5rem;
   display: flex;
@@ -1062,6 +1073,18 @@ body.recording-mode .preview-stage {
     0 0.05em 0.09em -0.025em rgba(0, 0, 0, 0.35);
 }
 .preview-frame-mobile iframe { width: 390px; }
+/* A real iPhone does not start a web page's content at the top of the glass:
+   the status bar area is inset, which is why the island never covers a site's
+   own header. Drawing the island over a page that started at y=0 put a black
+   pill through the middle of every site's logo.
+
+   That inset is applied inside the page itself (SAFE_AREA_SCRIPT in
+   src/previewProxy.js), not by shrinking the iframe from out here. Reserving
+   it out here meant this frame's own background showed above the site — a
+   white band across the top of the phone that no real device has. With the
+   page inset from within, its background runs up behind the island exactly as
+   it does on a phone, whatever colour that background happens to be. */
+
 .preview-frame-island {
   position: absolute;
   top: 0.028em;

@@ -7,6 +7,15 @@ import { recordSitePreview } from '../screenRecorder.js';
 
 const FETCH_TIMEOUT_MS = 15000;
 const CACHE_TTL_MS = 30000;
+// The app opens straight onto a live preview, so its first four proxy fetches
+// fire the instant the window appears — sometimes before the machine's network
+// stack is ready. A single transient DNS/connect failure there replaced the
+// site in all four device frames with "Failed to fetch preview target: fetch
+// failed", which reads as the app being broken when a retry a moment later
+// succeeds. Only network errors are retried; an HTTP error is the site's real
+// answer and is passed through.
+const FETCH_RETRIES = 2;
+const FETCH_RETRY_DELAY_MS = 700;
 
 // Simple in-process TTL cache so the 4 synced device frames don't each
 // independently re-fetch the same upstream page/asset within moments of
@@ -14,6 +23,21 @@ const CACHE_TTL_MS = 30000;
 // (and overwritten) on the next read past their TTL.
 const pageCache = new Map(); // targetHref -> { expires, html }
 const assetCache = new Map(); // targetHref -> { expires, status, contentType, body }
+
+async function fetchWithRetry(href) {
+  let lastError;
+  for (let attempt = 0; attempt <= FETCH_RETRIES; attempt++) {
+    try {
+      return await fetch(href, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+    } catch (err) {
+      lastError = err;
+      if (attempt < FETCH_RETRIES) {
+        await new Promise((resolve) => setTimeout(resolve, FETCH_RETRY_DELAY_MS * (attempt + 1)));
+      }
+    }
+  }
+  throw lastError;
+}
 
 function getFresh(cache, key) {
   const entry = cache.get(key);
@@ -75,7 +99,7 @@ export function createPreviewRouter({ outputRoot, previewBaseUrl } = {}) {
       return;
     }
     try {
-      const upstream = await fetch(target.href, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+      const upstream = await fetchWithRetry(target.href);
       const html = await upstream.text();
       const rewritten = await rewritePageHtml(html, target.href);
       pageCache.set(target.href, { expires: Date.now() + CACHE_TTL_MS, html: rewritten });
@@ -97,7 +121,7 @@ export function createPreviewRouter({ outputRoot, previewBaseUrl } = {}) {
       return;
     }
     try {
-      const upstream = await fetch(target.href, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+      const upstream = await fetchWithRetry(target.href);
       const contentType = upstream.headers.get('content-type') || 'application/octet-stream';
       if (/text\/css/i.test(contentType)) {
         const css = await upstream.text();

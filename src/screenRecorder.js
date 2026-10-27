@@ -24,12 +24,36 @@ const MAX_DURATION_MS = 15000;
 // into the recording. Halving the tick keeps the same pace and duration while
 // giving the reveals frames to play across.
 const SCROLL_TICK_MS = 50;
-// An intro splash covers the site for its first seconds. Recording through it
-// wastes the opening of every video on a logo animation, so the recording waits
-// it out instead. Capped, because a splash that never leaves must not hang the
-// run — the preview page hides it on its own timer in that case.
-const SPLASH_WAIT_MS = 8000;
-const SPLASH_POLL_MS = 250;
+// An intro splash covers the site for its first seconds, and the four device
+// frames do not get through it together — the desktop one renders at 1920px, so
+// it asks for the largest image variants and lags the phone beside it by
+// several seconds. Recording through that opens every video on a logo animation
+// over a blank white monitor, so the recording waits for all four instead.
+// Capped, because a splash that never leaves must not hang the run — the
+// preview page hides it on its own timer in that case.
+const FRAME_READY_WAIT_MS = 20000;
+const FRAME_READY_POLL_MS = 250;
+// A frame has to look splash-free for this long before it counts as ready. One
+// clean look is not enough: the four frames do not finish loading together, and
+// checking the slowest one before its splash had even mounted read as "no
+// splash, go" — so the recording opened on the intro animation the check exists
+// to skip, with the largest frame a blank white monitor for six seconds.
+const FRAME_QUIET_MS = 1500;
+// The earliest point in the raw capture the trim is allowed to cut to.
+//
+// The readiness checks above watch the DOM, and the DOM is ahead of the video.
+// Each device frame renders at its real device width (the desktop one at
+// 1920px) and is then CSS-scaled down to fit the stage, so Chromium has to
+// rasterise a far larger surface than the frame actually shows, and the video
+// stream carries only what has been rasterised. Measuring the recorded frames
+// directly, the desktop monitor stayed blank white for ~6s after navigation
+// while a page.screenshot() taken at 3s already showed the hero — the DOM
+// cannot report this, because by every DOM measure the frame was ready.
+//
+// So the trim point is also held to a floor measured from navigation. It costs
+// wall-clock on the run and nothing in the output, which is the right trade for
+// not opening every video on a blank screen.
+const MIN_PREROLL_MS = 8000;
 // Playwright starts recording the moment the page exists, so everything before
 // the scroll — four iframes fetching a site through the proxy, then the intro
 // splash playing out — lands at the head of the file as a static shot of four
@@ -58,17 +82,57 @@ const resolvedFfmpegPath = resolveFfmpegPath(ffmpegPath);
 // The proxied page inside each frame clears blocking modals itself (see
 // src/pageReady.js). A splash is left to finish on its own, so the recording
 // polls the desktop frame until it has.
-async function waitForSplashToClear(frame) {
-  const deadline = Date.now() + SPLASH_WAIT_MS;
+// Resolves once every device frame is showing the site itself: past its intro
+// splash, with the images that are actually on screen decoded. Only the visible
+// images are waited for — the rest are lazy-loaded and arrive as the recording
+// scrolls past them, which is the point.
+//
+// Every frame is watched, not just the desktop one. They load at different
+// speeds, and the recording is only worth starting once the slowest has caught
+// up.
+async function waitForFramesToSettle(page) {
+  const deadline = Date.now() + FRAME_READY_WAIT_MS;
+  const frames = [];
+  for (const name of ['desktop', 'laptop', 'tablet', 'mobile']) {
+    const handle = await page.$(`#preview-iframe-${name}`);
+    const frame = handle ? await handle.contentFrame() : null;
+    if (frame) frames.push({ frame, quietSince: null });
+  }
+
   while (Date.now() < deadline) {
-    let splash;
-    try {
-      splash = await frame.evaluate(FIND_SPLASH_FN);
-    } catch {
-      return;
+    let allReady = true;
+    for (const entry of frames) {
+      let state;
+      try {
+        const splash = await entry.frame.evaluate(FIND_SPLASH_FN);
+        const painted = await entry.frame.evaluate(() => {
+          var images = document.images;
+          for (var i = 0; i < images.length; i++) {
+            var img = images[i];
+            var rect = img.getBoundingClientRect();
+            var onScreen =
+              rect.bottom > 0 && rect.top < window.innerHeight && rect.width > 1 && rect.height > 1;
+            if (!onScreen) continue;
+            if (!img.complete || img.naturalWidth === 0) return false;
+          }
+          return true;
+        });
+        state = !splash && painted;
+      } catch {
+        // A frame that navigated out from under us can't hold up the others.
+        state = true;
+      }
+
+      if (!state) {
+        entry.quietSince = null;
+        allReady = false;
+        continue;
+      }
+      if (entry.quietSince === null) entry.quietSince = Date.now();
+      if (Date.now() - entry.quietSince < FRAME_QUIET_MS) allReady = false;
     }
-    if (!splash) return;
-    await frame.waitForTimeout(SPLASH_POLL_MS);
+    if (allReady) return;
+    await page.waitForTimeout(FRAME_READY_POLL_MS);
   }
 }
 
@@ -122,7 +186,9 @@ export async function recordSitePreview({ url, previewBaseUrl, outputDir }) {
       const desktopHandle = await page.$('#preview-iframe-desktop');
       const desktopFrame = desktopHandle ? await desktopHandle.contentFrame() : null;
 
-      if (desktopFrame) await waitForSplashToClear(desktopFrame);
+      await waitForFramesToSettle(page);
+      const prerollRemaining = MIN_PREROLL_MS - (Date.now() - recordingStartedAt);
+      if (prerollRemaining > 0) await page.waitForTimeout(prerollRemaining);
 
       let scrollDistance = 0;
       if (desktopFrame) {
@@ -145,9 +211,23 @@ export async function recordSitePreview({ url, previewBaseUrl, outputDir }) {
       if (scrollDistance > 0 && desktopHandle) {
         const box = await desktopHandle.boundingBox();
         if (box) {
+          // Each device frame is CSS-zoomed down to fit the stage (see
+          // public/preview.js scaleFramesToFit), and a wheel delta is measured
+          // in the stage's pixels while scrollDistance is measured in the
+          // frame's own document pixels. Feeding one straight into the other
+          // scrolled the desktop frame by delta/zoom — roughly three times the
+          // intended speed. It hit the footer a third of the way through the
+          // video and sat there, and on the way it moved so fast that the
+          // site's scroll-reveal animations never had time to play, which read
+          // as a blank white monitor next to three working devices.
+          const zoom = await page.evaluate(() => {
+            const iframe = document.querySelector('#preview-iframe-desktop');
+            const value = iframe ? parseFloat(iframe.style.zoom) : NaN;
+            return Number.isFinite(value) && value > 0 ? value : 1;
+          });
           await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
           const ticks = Math.max(1, Math.round(durationMs / SCROLL_TICK_MS));
-          const deltaPerTick = scrollDistance / ticks;
+          const deltaPerTick = (scrollDistance / ticks) * zoom;
           for (let i = 0; i < ticks; i++) {
             await page.mouse.wheel(0, deltaPerTick);
             await page.waitForTimeout(SCROLL_TICK_MS);
